@@ -9,12 +9,35 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       <div class="bg-card rounded-2xl border border-border/40 p-6 shadow-sm">
         <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <div :class="['w-12 h-12 rounded-xl flex items-center justify-center', iconBgClass]">
+            <!-- 运行中 -->
+            <svg v-if="status == 'running'" class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <!-- 检测中 -->
+            <svg v-else-if="status == 'checking'" class="w-6 h-6 text-yellow-600 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <!-- 未运行 -->
+            <svg v-else class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
           </div>
-          <div>
+          <div class="flex-1 min-w-0">
             <p class="text-sm text-muted-foreground">服务状态</p>
-            <p class="text-lg font-bold text-foreground">运行中</p>
+            <div class="flex items-center gap-2">
+              <p :class="['text-lg font-bold', textColorClass]">{{ statusText }}</p>
+              <button
+                @click="testConnection"
+                :disabled="status == 'checking'"
+                class="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-accent transition-colors border border-transparent hover:border-border/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="测试连接"
+              >
+                <svg class="w-4 h-4" :class="{ 'animate-spin': status == 'checking' }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -62,3 +85,49 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import api from '../api/trace-app'
+
+type ServiceStatus = 'checking' | 'running' | 'stopped'
+
+const status = ref<ServiceStatus>('checking')
+
+const statusText = computed(() => {
+  if (status.value == 'running') return '运行中'
+  if (status.value == 'checking') return '检测中...'
+  return '未运行'
+})
+
+const iconBgClass = computed(() => {
+  if (status.value == 'running') return 'bg-green-100'
+  if (status.value == 'checking') return 'bg-yellow-100'
+  return 'bg-red-100'
+})
+
+const textColorClass = computed(() => {
+  if (status.value == 'running') return 'text-foreground'
+  if (status.value == 'checking') return 'text-yellow-600'
+  return 'text-red-600'
+})
+
+const testConnection = async () => {
+  status.value = 'checking'
+  try {
+    const res = await api.health()
+    if (res?.code == 'success' && res?.data?.status == 'ok') {
+      status.value = 'running'
+    } else {
+      status.value = 'stopped'
+    }
+  } catch (err) {
+    console.error('服务连接失败', err)
+    status.value = 'stopped'
+  }
+}
+
+onMounted(() => {
+  testConnection()
+})
+</script>
