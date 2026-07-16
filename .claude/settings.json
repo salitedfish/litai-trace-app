@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:18085/trace_app/docs/swagger.json)",
+      "Bash(python -m json.tool)"
+    ]
+  }
+}
