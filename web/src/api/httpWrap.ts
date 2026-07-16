@@ -53,6 +53,18 @@ instance.interceptors.response.use(
   }
 )
 
-export const _get = (url: string, params?: any) => instance.get(url, { params })
-export const _post = (url: string, data?: any) => instance.post(url, data)
+export interface ApiResponse<T = any> {
+  code: string
+  data: T
+  info: string
+}
+
+export const _get = async <T = any>(url: string, params?: any): Promise<ApiResponse<T>> => {
+  const res = await instance.get(url, { params })
+  return res as unknown as ApiResponse<T>
+}
+export const _post = async <T = any>(url: string, data?: any): Promise<ApiResponse<T>> => {
+  const res = await instance.post(url, data)
+  return res as unknown as ApiResponse<T>
+}
 export const _postBlob = (url: string, data?: any) => instance.post(url, data, { responseType: 'blob' })

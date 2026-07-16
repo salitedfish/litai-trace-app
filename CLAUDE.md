@@ -121,3 +121,4 @@ The app uses `mg_app_framework` — a Tornado-based microservice framework with 
 - **Adding MQ subscription**: Add `"routing_key": handler_func` to `subscribe_key_and_process_func` in `utils/mq_config.py`.
 - **No TypeScript path aliases** configured — use relative imports in `web/src/`.
 - **Tailwind custom tokens** defined in `tailwind.config.js` — `bg-background`, `text-accent`, `text-muted-foreground`, `border-border`, etc. Use these consistently.
+- **前后端联调方式**：除非明确使用外部接口（通过 `config.py` 中 `ConfigStore` 配置的外部 API 地址），否则前端调用的 API 都是本项目 server 自身的接口。因此修改功能时通常需要 **web（前端）和 server（后端）同步修改** — 新增/修改 handler、注册路由、更新前端 API 调用。单端改动只适用于纯 UI 调整或纯后端逻辑（如 MQ 消费、定时任务）。
