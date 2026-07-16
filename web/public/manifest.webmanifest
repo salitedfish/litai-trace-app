@@ -1,0 +1,30 @@
+{
+  "name": "手动产线通用追溯",
+  "short_name": "产线追溯",
+  "description": "手动产线作业管理与过程参数追溯",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "./pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./logo.png",
+      "sizes": "640x640",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

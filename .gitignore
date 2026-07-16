@@ -7,7 +7,7 @@ env/
 .venv/
 .already_package
 .already_install
-.appid
+server/.appid
 .pid
 *.log
 
