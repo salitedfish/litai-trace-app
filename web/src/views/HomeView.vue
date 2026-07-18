@@ -65,6 +65,31 @@
           <code class="text-sm font-mono text-foreground">/api/trace_app/echo</code>
           <span class="text-sm text-muted-foreground">回显请求参数</span>
         </div>
+        <div class="flex items-center gap-4 p-3 rounded-xl bg-muted/20 border border-border/40">
+          <span class="px-2 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700">POST</span>
+          <code class="text-sm font-mono text-foreground">/api/trace_app/trace/query_by_output</code>
+          <span class="text-sm text-muted-foreground">产出码追溯查询</span>
+        </div>
+        <div class="flex items-center gap-4 p-3 rounded-xl bg-muted/20 border border-border/40">
+          <span class="px-2 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700">POST</span>
+          <code class="text-sm font-mono text-foreground">/api/trace_app/trace/query_outputs_by_input</code>
+          <span class="text-sm text-muted-foreground">投入码关联产出查询</span>
+        </div>
+        <div class="flex items-center gap-4 p-3 rounded-xl bg-muted/20 border border-border/40">
+          <span class="px-2 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700">POST</span>
+          <code class="text-sm font-mono text-foreground">/api/trace_app/trace/query_inputs</code>
+          <span class="text-sm text-muted-foreground">投入物料明细查询</span>
+        </div>
+        <div class="flex items-center gap-4 p-3 rounded-xl bg-muted/20 border border-border/40">
+          <span class="px-2 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700">POST</span>
+          <code class="text-sm font-mono text-foreground">/api/trace_app/trace/query_process_params</code>
+          <span class="text-sm text-muted-foreground">工艺参数查询</span>
+        </div>
+        <div class="flex items-center gap-4 p-3 rounded-xl bg-muted/20 border border-border/40">
+          <span class="px-2 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700">POST</span>
+          <code class="text-sm font-mono text-foreground">/api/trace_app/trace/query_submission_records</code>
+          <span class="text-sm text-muted-foreground">提交记录查询</span>
+        </div>
       </div>
     </div>
   </div>

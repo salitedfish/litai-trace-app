@@ -49,6 +49,7 @@ const pageTitle = computed(() => {
   const titleMap: Record<string, string> = {
     home: '追溯应用',
     history: '追溯查询',
+    device_data: '数采查询',
   }
   return titleMap[currentView.value] || '追溯应用'
 })

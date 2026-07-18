@@ -34,6 +34,12 @@ async def get_gycs_coll():
     return await get_collection_handler("gycs_data", _get_db_name("traceback"))
 
 
+async def get_datas_coll():
+    """获取数采数据表（datas）集合句柄"""
+    idi_db = f"idi_{get_organization()}"
+    return await get_collection_handler("datas", idi_db)
+
+
 def calc_check_result(raw_check, prod_model):
     """根据原始检测结果和生产模式计算显示用检测结果
 

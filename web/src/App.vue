@@ -9,6 +9,7 @@
       <main class="flex-1 w-full px-6 overflow-y-auto custom-scrollbar relative z-10 flex flex-col">
         <HomeView v-show="currentView === 'home'" />
         <TraceQueryView v-show="currentView === 'history'" />
+        <DeviceDataView v-show="currentView === 'device_data'" />
       </main>
     </div>
   </div>
@@ -20,6 +21,7 @@ import Sidebar from './components/layout/Sidebar.vue'
 import Header from './components/layout/Header.vue'
 import HomeView from './views/HomeView.vue'
 import TraceQueryView from './views/TraceQueryView.vue'
+import DeviceDataView from './views/DeviceDataView.vue'
 import { registerServiceWorker } from './registerServiceWorker'
 
 const isSidebarOpen = ref(true)

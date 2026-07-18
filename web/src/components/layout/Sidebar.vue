@@ -25,6 +25,13 @@
         <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         <span class="text-sm shrink-0">追溯查询</span>
       </a>
+
+      <a href="#" @click.prevent="currentView = 'device_data'"
+        :class="currentView === 'device_data' ? 'bg-accent/10 text-accent border-accent/20' : 'text-muted-foreground hover:bg-muted/50 border-transparent hover:text-foreground'"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium shadow-sm transition-colors border">
+        <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+        <span class="text-sm shrink-0">数采查询</span>
+      </a>
     </nav>
 
     <div class="p-4 border-t border-border/40 w-64">

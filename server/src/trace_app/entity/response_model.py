@@ -141,3 +141,35 @@ class ProcessParamItem(TypedDict):
 
 class ProcessParamResponse(BaseResponse):
     data: List[ProcessParamItem]  # 工艺参数记录列表
+
+
+# ==================== 设备数采查询 ====================
+
+class DeviceItem(TypedDict):
+    """设备信息"""
+    code: str  # 设备编码
+    name: str  # 设备名称
+
+
+class DeviceListResponse(BaseResponse):
+    data: List[DeviceItem]  # 设备列表
+
+
+class DeviceDataQueryRequest(TypedDict):
+    """设备数采数据查询请求参数"""
+    device_code: str  # 设备编码
+    start_time: str  # 开始时间（ISO 8601）
+    end_time: str  # 结束时间（ISO 8601）
+    page: int  # 页码（从 1 开始）
+    page_size: int  # 每页条数
+
+
+class DeviceDataItem(TypedDict):
+    """设备数采数据记录"""
+    code: str  # 信号编码（设备编码~信号类型）
+    value: str  # 信号值
+    timestamp: str  # 采集时间
+
+
+class DeviceDataQueryResponse(BaseResponse):
+    data: PageItem  # 分页数据（包含 total, page, page_size, list）
