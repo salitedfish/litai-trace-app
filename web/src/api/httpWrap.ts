@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { showToast } from '../utils/dialog'
 
 declare const http_base_url: string
 
@@ -49,6 +50,10 @@ instance.interceptors.response.use(
   },
   error => {
     console.error('API Request Error:', error)
+    const msg = error?.response?.status
+      ? `请求失败 (${error.response.status}${error.response.statusText ? ': ' + error.response.statusText : ''})`
+      : (error?.message || '网络请求失败')
+    showToast(msg, 'error')
     return Promise.reject(error)
   }
 )

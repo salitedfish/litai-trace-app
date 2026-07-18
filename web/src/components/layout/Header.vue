@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { inject, ref, computed } from 'vue'
+import { inject, ref, computed, onMounted } from 'vue'
 import type { Ref } from 'vue'
 import { showConfirm } from '../../utils/dialog'
 
@@ -47,12 +47,27 @@ const currentView = inject<Ref<string>>('currentView', ref('home'))
 
 const pageTitle = computed(() => {
   const titleMap: Record<string, string> = {
-    home: '追溯应用'
+    home: '追溯应用',
+    history: '追溯查询',
   }
   return titleMap[currentView.value] || '追溯应用'
 })
 
 const userName = ref('登录用户')
+
+onMounted(() => {
+  try {
+    const loginName = document.cookie
+      .split(';')
+      .map(cookie => cookie.trim().split('='))
+      .find(([key]) => key == 'login_name')
+    if (loginName?.[1]) {
+      userName.value = decodeURIComponent(loginName.slice(1).join('='))
+    }
+  } catch (e) {
+    console.warn('获取登录用户名失败', e)
+  }
+})
 
 const getBasePrefix = () => {
   const path = window.location.pathname

@@ -26,7 +26,7 @@ python run_trace_app.py
 # Production start
 python run_trace_app.py product
 
-# Swagger docs at http://localhost:18085/swagger/
+# Swagger docs at http://localhost:18085/trace_app/docs
 ```
 
 ### Frontend
@@ -42,7 +42,9 @@ npm run preview  # Preview production build
 ### Packaging & Deployment
 
 ```bash
-bash release/package.sh                    # Package into tarball
+bash release/package.sh                    # Package into tarball (original)
+release\package_smart_auto.bat             # 自动化打包（无 pause，报错直接退出）
+release\package_smart_manu.bat             # 手动打包（有 pause，按键继续）
 server/bin/install.sh                      # Install as systemd service
 server/bin/run.sh {start|stop|status|debug} # Service management
 ```
@@ -70,6 +72,7 @@ The app uses `mg_app_framework` — a Tornado-based microservice framework with 
 **Handler registration** (`handlers/http_handler/urls.py`):
 - Uses `tornado_request_mapping.Route` pattern: create a `Route()`, register handler classes with `.register()`, extend the `url` list
 - Add new handlers by creating a class with `@request_mapping(path)` decorator and registering it in `urls.py`
+- 所有 Handler 需要用 `generate_handler_classes()` 生成动态子类并注册，否则 Swagger 文档无法自动生成。参考 `handlers/http_handler/urls.py` 中的模式。
 
 **Database** (`utils/db.py`):
 - `get_db_handler(db_name=None)` → returns a Motor database handle (defaults to `{organization}_trace_app`)
@@ -86,6 +89,7 @@ The app uses `mg_app_framework` — a Tornado-based microservice framework with 
 - `request_utils.py` — async HTTP client wrapper (send_url_request / send_in_url_request) via Tornado's AsyncHTTPClient
 - `datetime_utils.py` — ISO 8601 datetime parsing (compatible with Python 3.6), timezone handling
 - `string_utils.py` — `StringUtils.is_empty(s)` / `is_empty_or(*args)`
+- `swagger_utils.py` — Swagger 文档生成工具，提供 `@swagger_doc` 装饰器（支持 TypedDict 模型自动转 schema）和 `generate_handler_classes()`（为每个 API 方法生成动态 Handler 子类）
 
 **Response pattern** (`entity/response_entity.py` → `common/response_entity.py`):
 - `Response.success(data, info)` / `Response.fail(info, data)` — returns unified `{code, data, info}` objects
@@ -97,9 +101,11 @@ The app uses `mg_app_framework` — a Tornado-based microservice framework with 
 **Structure**:
 - `main.ts` — Vue 3 app entry, no router (single-view app with manual `currentView` state)
 - `App.vue` — Root layout with sidebar nav + main content area. Sidebar toggles `currentView` ref
-- `views/HomeView.vue` — Dashboard showing service status, API address, and endpoint list
+- `views/HomeView.vue` — Dashboard showing service status and API endpoint list
+- `views/HistoryView.vue` — 历史记录页面（开发中）
+- `composables/useServiceStatus.ts` — 共享服务状态 composable，模块级单例，自动检测后端健康状态
 - `api/trace-app.ts` — API methods using `_get`/`_post` from `httpWrap.ts`
-- `api/httpWrap.ts` — Axios instance with login redirect interceptor, base URL auto-detection (dev vs deployment)
+- `api/httpWrap.ts` — Axios instance with login redirect interceptor, base URL auto-detection (dev vs deployment), 定义了 `ApiResponse<T>` 统一响应类型
 
 **Reusable UI components**:
 - `CleanTable.vue` — Table with select-all checkbox, slot-based cell customization, empty state, double-click emit. Props: `data`, `columns`, `selectable`

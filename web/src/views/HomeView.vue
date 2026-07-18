@@ -1,12 +1,7 @@
 <template>
   <div class="min-h-full flex flex-col relative z-10 w-full max-w-[1400px] mx-auto pt-8">
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-foreground">追溯应用</h1>
-      <p class="text-sm text-muted-foreground mt-1">欢迎使用追溯应用 — 在此处开发您的业务功能</p>
-    </div>
-
     <!-- 状态卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       <div class="bg-card rounded-2xl border border-border/40 p-6 shadow-sm">
         <div class="flex items-center gap-4">
           <div :class="['w-12 h-12 rounded-xl flex items-center justify-center', iconBgClass]">
@@ -54,22 +49,11 @@
         </div>
       </div>
 
-      <div class="bg-card rounded-2xl border border-border/40 p-6 shadow-sm">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-            <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-          </div>
-          <div>
-            <p class="text-sm text-muted-foreground">框架</p>
-            <p class="text-lg font-bold text-foreground">mg_app_framework</p>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <!-- API 端点列表 -->
+    <!-- API 接口列表 -->
     <div class="bg-card rounded-2xl border border-border/40 p-6 shadow-sm">
-      <h2 class="text-lg font-bold text-foreground mb-4">API 端点</h2>
+      <h2 class="text-lg font-bold text-foreground mb-4">API 接口</h2>
       <div class="space-y-3">
         <div class="flex items-center gap-4 p-3 rounded-xl bg-muted/20 border border-border/40">
           <span class="px-2 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700">GET</span>
@@ -87,12 +71,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import api from '../api/trace-app'
+import { computed } from 'vue'
+import { useServiceStatus } from '../composables/useServiceStatus'
 
-type ServiceStatus = 'checking' | 'running' | 'stopped'
-
-const status = ref<ServiceStatus>('checking')
+const { status, testConnection } = useServiceStatus()
 
 const statusText = computed(() => {
   if (status.value == 'running') return '运行中'
@@ -110,24 +92,5 @@ const textColorClass = computed(() => {
   if (status.value == 'running') return 'text-foreground'
   if (status.value == 'checking') return 'text-yellow-600'
   return 'text-red-600'
-})
-
-const testConnection = async () => {
-  status.value = 'checking'
-  try {
-    const res = await api.health()
-    if (res?.code == 'success' && res?.data?.status == 'ok') {
-      status.value = 'running'
-    } else {
-      status.value = 'stopped'
-    }
-  } catch (err) {
-    console.error('服务连接失败', err)
-    status.value = 'stopped'
-  }
-}
-
-onMounted(() => {
-  testConnection()
 })
 </script>

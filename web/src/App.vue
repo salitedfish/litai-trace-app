@@ -7,7 +7,8 @@
     <div class="flex flex-col flex-1 relative z-10 w-full overflow-hidden">
       <Header />
       <main class="flex-1 w-full px-6 overflow-y-auto custom-scrollbar relative z-10 flex flex-col">
-        <HomeView v-if="currentView === 'home'" />
+        <HomeView v-show="currentView === 'home'" />
+        <TraceQueryView v-show="currentView === 'history'" />
       </main>
     </div>
   </div>
@@ -18,6 +19,7 @@ import { ref, provide, onMounted, onUnmounted } from 'vue'
 import Sidebar from './components/layout/Sidebar.vue'
 import Header from './components/layout/Header.vue'
 import HomeView from './views/HomeView.vue'
+import TraceQueryView from './views/TraceQueryView.vue'
 import { registerServiceWorker } from './registerServiceWorker'
 
 const isSidebarOpen = ref(true)

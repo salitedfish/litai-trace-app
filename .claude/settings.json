@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(curl -s http://localhost:18085/trace_app/docs/swagger.json)",
-      "Bash(python -m json.tool)"
+      "Bash(python -m json.tool)",
+      "PowerShell(\\(Get-Content \"c:\\\\work\\\\MES\\\\trace_app\\\\web\\\\src\\\\components\\\\layout\\\\Sidebar.vue\" -Raw\\) -replace '历史记录', '追溯查询' | Set-Content \"c:\\\\work\\\\MES\\\\trace_app\\\\web\\\\src\\\\components\\\\layout\\\\Sidebar.vue\" -Encoding utf8)",
+      "Bash(python -c \"from trace_app.handlers.http_handler.trace_handler import TraceHandler; print\\('import ok'\\)\")",
+      "Bash(python -c ' *)",
+      "Read(//c/work/技术资料/力太MES/MG服务器部署资料/OtherAPP-24.04/iot_gx_trace_back_0.0.1/src/iot_gx_trace_back/process/db/**)",
+      "Bash(python -c \"from trace_app.handlers.http_handler.trace_handler import TraceHandler; print\\('ok'\\)\")",
+      "Bash(python tmp_update.py)"
     ]
   }
 }

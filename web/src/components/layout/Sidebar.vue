@@ -18,23 +18,40 @@
         <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
         <span class="text-sm shrink-0">首页</span>
       </a>
+
+      <a href="#" @click.prevent="currentView = 'history'"
+        :class="currentView === 'history' ? 'bg-accent/10 text-accent border-accent/20' : 'text-muted-foreground hover:bg-muted/50 border-transparent hover:text-foreground'"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium shadow-sm transition-colors border">
+        <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span class="text-sm shrink-0">追溯查询</span>
+      </a>
     </nav>
 
     <div class="p-4 border-t border-border/40 w-64">
       <div class="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/50 border border-border/50">
         <span class="relative flex h-2 w-2 shrink-0">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+          <span v-if="status == 'running'" class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          <span v-else-if="status == 'checking'" class="relative inline-flex rounded-full h-2 w-2 bg-yellow-500 animate-pulse"></span>
+          <span v-else class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
         </span>
-        <span class="text-xs font-mono text-muted-foreground shrink-0">系统状态: 正常</span>
+        <span class="text-xs font-mono text-muted-foreground shrink-0">系统状态: {{ sidebarStatusText }}</span>
       </div>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { ref, inject } from 'vue'
+import { ref, computed, inject } from 'vue'
 import type { Ref } from 'vue'
+import { useServiceStatus } from '../../composables/useServiceStatus'
+
+const { status } = useServiceStatus()
+
+const sidebarStatusText = computed(() => {
+  if (status.value == 'running') return '运行中'
+  if (status.value == 'checking') return '检测中...'
+  return '未运行'
+})
 
 const appName = ref('追溯应用')
 const isSidebarOpen = inject<Ref<boolean>>('isSidebarOpen', ref(true))
