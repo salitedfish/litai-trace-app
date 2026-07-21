@@ -2,7 +2,7 @@
   <div class="h-full flex flex-col relative z-10 w-full max-w-[1400px] mx-auto pt-4">
     <!-- 搜索区 -->
     <div class="bg-card rounded-xl border border-border/40 p-4 shadow-sm mb-3 shrink-0">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
         <div class="flex flex-col gap-1.5">
           <span class="text-xs font-medium text-muted-foreground">设备</span>
           <CustomSelect
@@ -11,6 +11,17 @@
             placeholder="请选择设备"
             variant="outline"
             :disabled="deviceLoading"
+            searchable
+          />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <span class="text-xs font-medium text-muted-foreground">点位</span>
+          <CustomSelect
+            v-model="selectedPoint"
+            :options="pointOptions"
+            placeholder="全部点位"
+            variant="outline"
+            :disabled="!selectedDevice || pointLoading"
             searchable
           />
         </div>
@@ -64,7 +75,7 @@
 
       <div v-else-if="total > 0" class="overflow-auto flex-1 min-h-0">
         <table class="w-full text-left border-collapse">
-          <thead class="sticky top-0 bg-muted/50 z-10">
+          <thead class="sticky top-0 bg-card z-10">
             <tr class="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
               <th class="px-3 py-2.5 font-semibold whitespace-nowrap w-12 text-center">#</th>
               <th class="px-3 py-2.5 font-semibold whitespace-nowrap">信号编码</th>
@@ -105,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '../api/trace-app'
 import CustomSelect from '../components/CustomSelect.vue'
 
@@ -113,6 +124,19 @@ import CustomSelect from '../components/CustomSelect.vue'
 const selectedDevice = ref('')
 const deviceOptions = ref<{ label: string, value: string }[]>([])
 const deviceLoading = ref(false)
+
+// 点位列表
+const selectedPoint = ref('')
+const pointOptions = ref<{ label: string, value: string }[]>([])
+const pointLoading = ref(false)
+
+
+// 切换设备时重新加载点位
+watch(selectedDevice, () => {
+  selectedPoint.value = ''
+  pointOptions.value = []
+  loadDevicePoints()
+})
 
 // 时间范围
 const startTime = ref('')
@@ -134,10 +158,10 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.v
 // ========== 初始化 ==========
 onMounted(async () => {
   await loadDeviceList()
-  // 默认时间范围：最近 1 小时
+  // 默认时间范围：最近一周
   const now = new Date()
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
-  startTime.value = formatDatetimeLocal(oneHourAgo)
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  startTime.value = formatDatetimeLocal(oneWeekAgo)
   endTime.value = formatDatetimeLocal(now)
 })
 
@@ -155,6 +179,28 @@ const loadDeviceList = async () => {
     console.error('加载设备列表失败:', err)
   } finally {
     deviceLoading.value = false
+  }
+}
+
+// ========== 点位列表 ==========
+const loadDevicePoints = async () => {
+  if (!selectedDevice.value) {
+    pointOptions.value = []
+    return
+  }
+  pointLoading.value = true
+  try {
+    const res = await api.queryDevicePoints(selectedDevice.value)
+    const list = res.data || []
+    pointOptions.value = list.map((p: any) => ({
+      label: `${p.name} (${p.code})`,
+      value: p.code,
+    }))
+  } catch (err: any) {
+    console.error('加载点位列表失败:', err)
+    pointOptions.value = []
+  } finally {
+    pointLoading.value = false
   }
 }
 
@@ -177,6 +223,7 @@ const doQuery = async () => {
 
     const res = await api.queryDeviceData({
       device_code: selectedDevice.value,
+      point_code: selectedPoint.value || undefined,
       start_time: st,
       end_time: et,
       page: page.value,

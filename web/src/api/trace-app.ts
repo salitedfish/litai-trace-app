@@ -14,8 +14,11 @@ export default {
 
   // 设备数采查询
   queryDeviceList: () => _post('api/trace_app/device_data/list'),
+  queryDevicePoints: (deviceCode: string) =>
+    _post('api/trace_app/device_data/points', { device_code: deviceCode }),
   queryDeviceData: (params: {
     device_code: string,
+    point_code?: string,
     start_time: string,
     end_time: string,
     page: number,

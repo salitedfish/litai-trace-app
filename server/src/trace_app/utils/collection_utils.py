@@ -34,6 +34,11 @@ async def get_gycs_coll():
     return await get_collection_handler("gycs_data", _get_db_name("traceback"))
 
 
+async def get_process_params_config_coll():
+    """获取工艺参数配置表（process_params_config）集合句柄"""
+    return await get_collection_handler("process_params_config", _get_db_name("manual_trace"))
+
+
 async def get_datas_coll():
     """获取数采数据表（datas）集合句柄"""
     idi_db = f"idi_{get_organization()}"

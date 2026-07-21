@@ -7,6 +7,8 @@ from trace_app.common.base_handler import BaseHandler
 from trace_app.entity.response_entity import Response
 from trace_app.entity.response_model import (
     DeviceListResponse,
+    DevicePointItem,
+    DevicePointListResponse,
     DeviceDataQueryRequest,
     DeviceDataQueryResponse,
 )
@@ -53,21 +55,73 @@ class DeviceDataHandler(BaseHandler):
             self.send_response(Response.fail("查询失败，服务器内部错误"))
 
     # =====================================================================
+    # 设备点位列表查询
+    # =====================================================================
+
+    @request_mapping('/device_data/points', method='post', description='获取设备点位列表')
+    @swagger_doc(
+        tags=["数采查询"],
+        summary="获取设备点位列表",
+        description="根据设备编码查询该设备的所有点位（signal points），返回编码和名称",
+        response_model=DevicePointListResponse,
+    )
+    @loginrequired
+    async def query_device_points(self):
+        """查询设备点位列表，用于前端点位下拉选择"""
+        try:
+            if not self.data or not self.data.get("device_code"):
+                self.send_response(Response.fail("请传入设备编码 device_code"))
+                return
+
+            device_code = self.data["device_code"].strip()
+            if not device_code:
+                self.send_response(Response.fail("设备编码不能为空"))
+                return
+
+            device_coll = await get_device_coll()
+            device = await device_coll.find_one(
+                {"code": device_code, "type": "device"},
+                projection={"children": 1}
+            )
+
+            result = []
+            # 默认首位：开关机状态（p_kgj_wg），所有设备通用
+            result.append({
+                "code": "p_kgj_wg",
+                "name": "开关机状态",
+            })
+            if device and device.get("children"):
+                for child in device["children"]:
+                    code = child.get("code", "")
+                    name = child.get("name", "")
+                    if code and code != "p_kgj_wg":
+                        result.append({
+                            "code": code,
+                            "name": name or code,
+                        })
+
+            self.send_response(Response.success(result, "查询成功"))
+
+        except Exception:
+            get_logger().error(traceback.format_exc())
+            self.send_response(Response.fail("查询失败，服务器内部错误"))
+
+    # =====================================================================
     # 设备数采数据查询
-    # 按设备编码 + 时间范围查询 datas 表，分页返回
+    # 按设备 + 点位 + 时间范围查询 datas 表，分页返回
     # =====================================================================
 
     @request_mapping('/device_data/query', method='post', description='查询设备数采数据')
     @swagger_doc(
         tags=["数采查询"],
         summary="查询设备数采数据",
-        description="按设备编码和时间范围查询数采数据，支持分页",
+        description="按设备编码、点位编码和时间范围查询数采数据，支持分页",
         request_model=DeviceDataQueryRequest,
         response_model=DeviceDataQueryResponse,
     )
     @loginrequired
     async def query_device_data(self):
-        """设备数采数据查询 — 设备 + 时间范围 + 分页"""
+        """设备数采数据查询 — 设备 + 点位 + 时间范围 + 分页"""
         try:
             # ---- 参数校验 ----
             if not self.data:
@@ -75,6 +129,7 @@ class DeviceDataHandler(BaseHandler):
                 return
 
             device_code = (self.data.get("device_code") or "").strip()
+            point_code = (self.data.get("point_code") or "").strip()
             start_time = (self.data.get("start_time") or "").strip()
             end_time = (self.data.get("end_time") or "").strip()
 
@@ -95,18 +150,25 @@ class DeviceDataHandler(BaseHandler):
                 page_size = 200
 
             # ---- 构建查询条件 ----
-            from datetime import datetime
-            try:
-                dt_start = datetime.fromisoformat(start_time)
-                dt_end = datetime.fromisoformat(end_time)
-            except ValueError:
+            from trace_app.utils.datetime_utils import parse_iso_format_datetime
+            dt_start = parse_iso_format_datetime(start_time)
+            dt_end = parse_iso_format_datetime(end_time)
+            if not dt_start or not dt_end:
                 self.send_response(Response.fail("时间格式不正确，请使用 ISO 8601 格式"))
                 return
 
-            query_filter = {
-                "code": {"$regex": f"^{device_code}~"},
-                "timestamp": {"$gte": dt_start, "$lte": dt_end},
-            }
+            if point_code:
+                # 指定点位：精确匹配
+                query_filter = {
+                    "code": f"{device_code}~{point_code}",
+                    "timestamp": {"$gte": dt_start, "$lte": dt_end},
+                }
+            else:
+                # 未指定点位：按设备前缀模糊匹配
+                query_filter = {
+                    "code": {"$regex": f"^{device_code}~"},
+                    "timestamp": {"$gte": dt_start, "$lte": dt_end},
+                }
 
             # ---- 查询并分页 ----
             datas_coll = await get_datas_coll()

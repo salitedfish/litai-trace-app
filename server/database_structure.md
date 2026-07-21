@@ -1,6 +1,6 @@
 # MES 追溯应用 — MongoDB 数据库结构文档
 
-> 最后更新：2026-07-17
+> 最后更新：2026-07-20（新增 process_params_config）
 
 ---
 
@@ -8,7 +8,7 @@
 
 | 属性 | 说明 |
 |------|------|
-| **数据库名称** | `manugence_root`、`{}_config`、`{}_order_retrospect`、`{}_scan_code_data`、`idi_{}`、`idi_{}_cloud_management`（`{}` 为组织代码） |
+| **数据库名称** | `manugence_root`、`{}_config`、`{}_order_retrospect`、`{}_workorder`、`{}_scan_code_data`、`idi_{}`、`idi_{}_cloud_management`、`{}_manual_trace`（`{}` 为组织代码） |
 | **MongoDB 地址** |  |
 
 ---
@@ -198,9 +198,123 @@
 
 ---
 
-### 4. `{}_scan_code_data` 数据库
+### 4. `{}_workorder` 数据库
 
-#### 4.1 `scan_code_rules` — 条码解析规则
+#### 4.1 `workorder_record` — 工单记录
+
+**用途：** 存储工单主数据，包括工单基本信息、BOM 物料清单（各工序的投入/产出物料及定额）、生产单元配置、计划数量、工单状态等。
+
+**字段定义：**
+
+| 字段 | 类型 | 说明 | 示例值 |
+|------|------|------|--------|
+| `_id` | ObjectId | 主键 | `6a48b4a044713ff963bfa6f3` |
+| `workorder_code` | string | 工单编码（唯一标识） | `G202607040001` |
+| `assembly_part_info` | array | 装配部件信息 | `[]` |
+| `bom_info` | object | BOM 信息，key 为工序段编码 | 见下方子表 |
+| `close_automatically` | boolean | 是否自动关闭 | `true` |
+| `complete_reason` | string/null | 完成原因 | `null` |
+| `deadline` | string | 截止日期 | `2026-07-04` |
+| `defective_id` | string | 不良品 ID | `""` |
+| `important_order` | boolean | 是否重要工单 | `false` |
+| `is_child_workorder` | boolean | 是否子工单 | `false` |
+| `is_origin` | boolean | 是否原始工单 | `false` |
+| `is_parent_workorder` | boolean | 是否父工单 | `false` |
+| `is_reference_workorder` | boolean | 是否参考工单 | `false` |
+| `is_rework_workorder` | boolean | 是否返工工单 | `false` |
+| `last_procedure_code` | string | 上一工序编码 | `""` |
+| `mould_preparation` | array | 模具准备信息 | `[]` |
+| `need_reference_workorder` | boolean | 是否需要参考工单 | `false` |
+| `need_track` | boolean | 是否需要追踪 | `false` |
+| `next_check_trigger_value` | object | 下次检查触发值 | `{}` |
+| `one_pass_amount` | number | 一次性通过数量 | `0` |
+| `order_id` | string | 订单 ID | `202607040001` |
+| `origin_order_code` | string | 原始订单编码 | `G202607040001` |
+| `plan_quality_list` | array[object] | 计划质量列表（按日计划） | 见下方子表 |
+| `planned_quantity` | number | 计划数量 | `5` |
+| `planned_rlj` | string | 计划热料（预留字段） | `""` |
+| `procedure_code` | string | 当前工序编码 | `GX0020` |
+| `procedure_name` | string | 当前工序名称 | `零件清洗` |
+| `product_code` | string | 产品编码 | `330607-01` |
+| `product_name` | string | 产品名称 | `中冷器` |
+| `production_cell` | object | 生产单元配置（含设备列表） | 见下方子表 |
+| `reference_part_complete` | boolean | 参考部件是否完成 | `false` |
+| `route_code` | string | 工艺路线编码 | `330607-01` |
+| `section_code` | string | 工段编码 | `202607C0001` |
+| `section_name` | string | 工段名称 | `202607C0001` |
+| `section_seq` | number | 工段顺序号 | `1` |
+| `shift` | string | 班次 | `早班` |
+| `specification_model` | string | 规格型号 | `""` |
+| `sub_produce_unit_code` | string | 子生产单元编码 | `""` |
+| `sub_produce_unit_name` | string | 子生产单元名称 | `""` |
+| `task_type` | string | 任务类型（`zizhi_zuzhuang`=自制组装等） | `zizhi_zuzhuang` |
+| `tbd_amount` | number | 待定数量 | `0` |
+| `to_be_check` | boolean | 是否需要检验 | `false` |
+| `unit_seq` | number | 单元顺序号 | `1` |
+| `working_time` | number | 工作时间（秒/分钟） | `0` |
+| `workorder_seq` | number | 工单顺序号 | `1` |
+| `workorder_status` | string | 工单状态（`pending`=待生产/`processing`=生产中/`complete`=已完成/`closed`=已关闭） | `complete` |
+| `workorder_to_show` | string | 显示用工单号 | `G202607040001` |
+| `workshop_code` | string | 车间编码 | `202607L0001` |
+| `workshop_name` | string | 车间名称 | `卡特产线` |
+| `complete_time` | datetime | 完成时间 | `2026-07-05T08:00:00.102Z` |
+
+**`bom_info` 子结构（key 为工序段编码的对象）：**
+
+| 字段 | 类型 | 说明 | 示例值 |
+|------|------|------|--------|
+| `product_in` | array[object] | 投入物料清单 | 见下方子表 |
+| `product_out` | array[object] | 产出物料清单 | 见下方子表 |
+
+**`product_in` / `product_out` 数组元素结构：**
+
+| 字段 | 类型 | 说明 | 示例值 |
+|------|------|------|--------|
+| `material_code` | string | 物料编码 | `330607-01` |
+| `material_name` | string | 物料名称 | `中冷器` |
+| `material_quota` | number | 物料定额数量 | `1` |
+| `material_type` | string | 物料类型（`raw_material`=原材料/`semi_finished_product`=半成品/`finished_product`=成品） | `semi_finished_product` |
+| `code_type` | string | 条码类型（`single_code`=单件码/`batch_code`=批次码） | `single_code` |
+| `is_check_miss_process` | boolean | 是否检查漏工序（仅 `product_in` 有） | `false` |
+
+**`plan_quality_list` 数组元素结构：**
+
+| 字段 | 类型 | 说明 | 示例值 |
+|------|------|------|--------|
+| `plan_quality_of_day` | string | 计划日期 | `2026-07-04` |
+| `quantity` | number | 计划数量 | `5` |
+
+**`production_cell` 对象结构：**
+
+| 字段 | 类型 | 说明 | 示例值 |
+|------|------|------|--------|
+| `produce_unit_name` | string | 生产单元名称 | `零件清洗` |
+| `produce_unit_code` | string | 生产单元编码 | `202607C0001` |
+| `beat` | number | 节拍（秒/分钟） | `5` |
+| `device_list` | array[object] | 设备列表 | 见下方子表 |
+
+**`device_list` 数组元素结构：**
+
+| 字段 | 类型 | 说明 | 示例值 |
+|------|------|------|--------|
+| `device_name` | string | 设备名称 | `超声波清洗机` |
+| `device_code` | string | 设备编码 | `dev_csbqxj_001` |
+
+**关联关系：**
+- `product_code` → `{}_config.production_config_mgm_material_info.物料编码`
+- `procedure_code` → `{}_config.production_config_mgm_process_info.工序编码`
+- `route_code` → `{}_config.production_config_mgm_record.routing_code`
+- `production_cell.produce_unit_code` → `{}_config.production_config_mgm_routing_process_info.生产单元编码`
+- `bom_info.*.product_in[].material_code` → `{}_config.production_config_mgm_material_info.物料编码`（多对多）
+- `workorder_code` → `{}_order_retrospect.work_order_retrospect_records.raw_workorder_code`（一对多，报工记录通过原始工单号关联）
+
+---
+
+---
+
+### 5. `{}_scan_code_data` 数据库
+
+#### 5.1 `scan_code_rules` — 条码解析规则
 
 **用途：** 定义物料条码的解析规则，配置条码各段位的含义（物料编码、批次号、流水号等），支持批次码和单件码两种条码类型。
 
@@ -247,9 +361,9 @@
 
 ---
 
-### 5. `idi_{}` 数据库
+### 6. `idi_{}` 数据库
 
-#### 5.1 `datas` — 数采数据
+#### 6.1 `datas` — 数采数据
 
 **用途：** 存储设备数据采集（数采）的实时信号数据，记录设备各信号点的最新值及时间戳。
 
@@ -270,9 +384,9 @@
 
 ---
 
-### 6. `idi_{}_cloud_management` 数据库
+### 7. `idi_{}_cloud_management` 数据库
 
-#### 6.1 `folder` — 工厂/产线层级
+#### 7.1 `folder` — 工厂/产线层级
 
 **用途：** 配置数采系统时使用的工厂与产线层级结构表，以树形结构组织各层级节点（工厂→车间→产线等）。
 
@@ -292,7 +406,7 @@
 - `type` 为 `folder` 时表示分组/层级节点（工厂、车间、产线等）
 - `code` 被 `gateway.level_code` 引用
 
-#### 6.2 `gateway` — 网关配置
+#### 7.2 `gateway` — 网关配置
 
 **用途：** 存储 IoT 网关的配置信息，包括通信方式、采集时间、所属层级、IP 地址等。
 
@@ -315,7 +429,7 @@
 **关联关系：**
 - `level_code` → `folder.code`（多对一，网关所属的产线/层级）
 
-#### 6.3 `device` — 设备配置
+#### 7.3 `device` — 设备配置
 
 **用途：** 存储 IoT 设备信息及配置，包括通信参数、驱动类型、点位列表等。一个网关下挂多个设备。
 
@@ -378,9 +492,11 @@
 
 ---
 
-### 7. `{}_traceback` 数据库
+---
 
-#### 7.1 `gycs_data` — 工艺参数数据
+### 8. `{}_traceback` 数据库
+
+#### 8.1 `gycs_data` — 工艺参数数据
 
 **用途：** 存储生产过程中的工艺参数采集数据，记录各设备的工艺参数值、检测结果等。
 
@@ -427,6 +543,48 @@
 - `procedure_code` → `{}_config.production_config_mgm_process_info.工序编码`
 - `workorder_code` → `{}_order_retrospect.work_order_retrospect_records.raw_workorder_code`
 - `qr_workorder_code` → `{}_order_retrospect.work_order_retrospect_records.workorder_code`（一对一，追溯页面的产出记录通过此关联查询工艺参数）
+
+---
+
+---
+
+### 9. `{}_manual_trace` 数据库
+
+#### 9.1 `process_params_config` — 工艺参数配置
+
+**用途：** 存储各工序/设备对应的工艺参数键值定义，描述在某条工艺路线的某道工序中，需要采集哪些工艺参数及其类型。
+
+**字段定义：**
+
+| 字段 | 类型 | 说明 | 示例值 |
+|------|------|------|--------|
+| `_id` | ObjectId | 主键 | `6a5717b4bb4651c9bd7ba800` |
+| `id` | string | ID（预留字段） | `""` |
+| `process_route_code` | string | 工艺路线编码 | `330607-01` |
+| `process_route_name` | string | 工艺路线名称 | `330607-01卡特产线` |
+| `product_code` | string | 产品编码 | `330607-01` |
+| `product_name` | string | 产品名称 | `中冷器` |
+| `process_code` | string | 工序编码 | `GX0130` |
+| `process_name` | string | 工序名称 | `打标` |
+| `device_code` | string | 设备编码 | `dev_db_001` |
+| `device_name` | string | 设备名称 | `激光打标机` |
+| `params` | array[object] | 工艺参数定义列表 | 见下方子表 |
+| `created_at` | datetime | 创建时间 | `2026-07-15T13:16:36.110Z` |
+| `updated_at` | datetime | 更新时间 | `2026-07-15T13:16:36.110Z` |
+
+**`params` 数组元素结构：**
+
+| 字段 | 类型 | 说明 | 示例值 |
+|------|------|------|--------|
+| `param_key` | string | 参数键名（英文标识） | `zpjg` |
+| `param_desc` | string | 参数描述/中文名 | `装配结果` |
+| `param_type` | string | 参数类型（`string`/`number`/`boolean` 等） | `string` |
+
+**关联关系：**
+- `process_route_code` → `{}_config.production_config_mgm_record.routing_code`（多对一）
+- `process_code` → `{}_config.production_config_mgm_process_info.工序编码`（多对一）
+- `device_code` → `idi_{}_cloud_management.device.code`（多对一）
+- `product_code` → `{}_config.production_config_mgm_material_info.物料编码`（多对一）
 
 ---
 

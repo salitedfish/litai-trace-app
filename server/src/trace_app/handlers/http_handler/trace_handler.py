@@ -18,6 +18,7 @@ from trace_app.utils.collection_utils import (
     get_records_coll,
     get_process_coll,
     get_gycs_coll,
+    get_process_params_config_coll,
     calc_check_result,
     enrich_device_names,
     enrich_user_names,
@@ -384,6 +385,7 @@ class TraceHandler(BaseHandler):
                 return
 
             result = []
+            operator_ids = set()
             for r in records:
                 # 转换检测结果（一次合格/返工合格/复投合格）
                 check_result = calc_check_result(
@@ -391,13 +393,20 @@ class TraceHandler(BaseHandler):
                     r.get('production_model', ''),
                 )
 
+                op_id = r.get('operator', '') or ''
+                if op_id:
+                    operator_ids.add(op_id)
+
                 result.append({
                     'workorder_code': r.get('workorder_code', ''),
                     'op_time': str(r.get('op_time', '')),
-                    'operator': r.get('operator', ''),
+                    'operator': op_id,
                     'check_result': check_result,
                     'production_model': r.get('production_model', ''),
                 })
+
+            # 批量查询用户昵称替换操作人工号
+            await enrich_user_names(operator_ids, result)
 
             self.send_response(Response.success(result, '查询成功'))
 
@@ -438,15 +447,46 @@ class TraceHandler(BaseHandler):
                 self.send_response(Response.success([], "未找到工艺参数数据"))
                 return
 
+            # 收集所有 (device_code, procedure_code) 对，批量查询工艺参数配置
+            config_pairs = set()
+            for r in records:
+                dc = r.get("device_code", "")
+                pc = r.get("procedure_code", "")
+                if dc and pc:
+                    config_pairs.add((dc, pc))
+
+            # 查询 process_params_config，构建 device+procedure -> param_desc_map
+            config_coll = await get_process_params_config_coll()
+            desc_map_cache = {}  # key: f"{device_code}|{procedure_code}"
+            if config_pairs and config_coll is not None:
+                for dc, pc in config_pairs:
+                    config = await config_coll.find_one(
+                        {"device_code": dc, "process_code": pc},
+                        projection={"params": 1}
+                    )
+                    if config and config.get("params"):
+                        desc_map = {}
+                        for p in config["params"]:
+                            if p.get("param_key"):
+                                desc_map[p["param_key"]] = p.get("param_desc", "")
+                        if desc_map:
+                            desc_map_cache[f"{dc}|{pc}"] = desc_map
+
             result = []
             for r in records:
                 params_data = r.get("data", {})
                 if not isinstance(params_data, dict):
                     params_data = {}
+                device_code = r.get("device_code", "")
+                procedure_code = r.get("procedure_code", "")
+                # 从缓存中获取该设备+工序的参数描述映射
+                cache_key = f"{device_code}|{procedure_code}"
+                param_descs = desc_map_cache.get(cache_key, {})
                 result.append({
                     "data_type": r.get("data_type", ""),
                     "params": params_data,
-                    "device_code": r.get("device_code", ""),
+                    "param_descs": param_descs,
+                    "device_code": device_code,
                     "device_name": r.get("device_name", ""),
                     "procedure_name": r.get("procedure_name", ""),
                     "timestamp": str(r.get("timestamp", "")),

@@ -188,7 +188,7 @@
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   <div v-for="(val, key) in item.params" :key="key" class="bg-white rounded border border-border/40 px-3 py-2">
-                    <p class="text-[10px] text-muted-foreground font-mono">{{ key }}</p>
+                    <p class="text-[10px] text-muted-foreground font-mono">{{ item.param_descs?.[key] || key }}</p>
                     <p class="text-sm font-semibold text-foreground">{{ val }}</p>
                   </div>
                 </div>
@@ -244,8 +244,8 @@
                     <td class="px-3 py-2.5"><span class="text-xs" :class="checkResultClass(rec.check_result)">{{ rec.check_result || '-' }}</span></td>
                     <td class="px-3 py-2.5 text-center">
                       <div class="flex items-center justify-center gap-1.5">
-                        <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-accent/10 text-accent hover:bg-accent/20 transition-colors" @click="openInputModal({ workorder_code: rec.workorder_code, procedure_name: subStep?.procedure_name, procedure_code: subStep?.procedure_code, qr_code: subStep?.qr_code })">查看投入</button>
-                        <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors" @click="openProcessParamModal({ workorder_code: rec.workorder_code, procedure_name: subStep?.procedure_name, procedure_code: subStep?.procedure_code, qr_code: subStep?.qr_code })">工艺参数</button>
+                        <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-accent/10 text-accent hover:bg-accent/20 transition-colors" @click="openInputFromSub(rec)">查看投入</button>
+                        <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors" @click="openProcessParamFromSub(rec)">工艺参数</button>
                       </div>
                     </td>
                   </tr>
@@ -484,6 +484,30 @@ const closeSubModal = () => {
   subModalVisible.value = false
   subStep.value = null
   subRecords.value = []
+}
+
+// 从提交记录弹窗打开投入弹窗：先关提交记录，再开投入，避免 z-index 遮挡
+const openInputFromSub = (rec: any) => {
+  const step = {
+    workorder_code: rec.workorder_code,
+    procedure_name: subStep.value?.procedure_name,
+    procedure_code: subStep.value?.procedure_code,
+    qr_code: subStep.value?.qr_code,
+  }
+  closeSubModal()
+  openInputModal(step)
+}
+
+// 从提交记录弹窗打开工艺参数弹窗：先关提交记录，再开工艺参数，避免 z-index 遮挡
+const openProcessParamFromSub = (rec: any) => {
+  const step = {
+    workorder_code: rec.workorder_code,
+    procedure_name: subStep.value?.procedure_name,
+    procedure_code: subStep.value?.procedure_code,
+    qr_code: subStep.value?.qr_code,
+  }
+  closeSubModal()
+  openProcessParamModal(step)
 }
 
 // ========== 工具 ==========

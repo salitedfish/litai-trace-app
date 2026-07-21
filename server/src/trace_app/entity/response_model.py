@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from typing_extensions import TypedDict
 
-from trace_app.utils.swagger_utils import BaseResponse
+from trace_app.utils.swagger_utils import BaseResponse, PageItem
 
 
 # ==================== 健康检查 ====================
@@ -155,9 +155,20 @@ class DeviceListResponse(BaseResponse):
     data: List[DeviceItem]  # 设备列表
 
 
+class DevicePointItem(TypedDict):
+    """设备点位信息"""
+    code: str  # 点位编码
+    name: str  # 点位名称
+
+
+class DevicePointListResponse(BaseResponse):
+    data: List[DevicePointItem]  # 点位列表
+
+
 class DeviceDataQueryRequest(TypedDict):
     """设备数采数据查询请求参数"""
     device_code: str  # 设备编码
+    point_code: str  # 点位编码（可选，为空则查该设备所有点位）
     start_time: str  # 开始时间（ISO 8601）
     end_time: str  # 结束时间（ISO 8601）
     page: int  # 页码（从 1 开始）
