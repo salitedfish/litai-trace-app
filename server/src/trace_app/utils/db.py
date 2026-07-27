@@ -6,6 +6,9 @@ db_index_map = {
     #     [("field_name", 1)],  # 升序索引
     #     [("field_a", 1), ("field_b", -1)],  # 复合索引
     # ],
+    'dashboard_config_1': [
+        [("updated_at", -1)],  # 按更新时间降序
+    ],
 }
 
 

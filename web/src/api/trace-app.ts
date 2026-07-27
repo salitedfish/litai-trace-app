@@ -24,4 +24,8 @@ export default {
     page: number,
     page_size: number,
   }) => _post('api/trace_app/device_data/query', params),
+
+  // 智能看板配置
+  getDashboardConfig: () => _get('api/trace_app/dashboard/config'),
+  saveDashboardConfig: (title: string) => _post('api/trace_app/dashboard/config', { title }),
 }

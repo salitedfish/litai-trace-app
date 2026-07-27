@@ -12,26 +12,41 @@
     <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1 custom-scrollbar w-64">
       <p class="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest px-2 mb-3">导航</p>
 
-      <a href="#" @click.prevent="currentView = 'home'"
-        :class="currentView === 'home' ? 'bg-accent/10 text-accent border-accent/20' : 'text-muted-foreground hover:bg-muted/50 border-transparent hover:text-foreground'"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium shadow-sm transition-colors border">
-        <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-        <span class="text-sm shrink-0">首页</span>
-      </a>
+      <template v-for="item in navItems" :key="item.label">
+        <!-- 普通导航项 -->
+        <a v-if="!item.children" href="#" @click.prevent="currentView = item.view!"
+          :class="currentView === item.view ? 'bg-accent/10 text-accent border-accent/20' : 'text-muted-foreground hover:bg-muted/50 border-transparent hover:text-foreground'"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium shadow-sm transition-colors border">
+          <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="item.icon" /></svg>
+          <span class="text-sm shrink-0">{{ item.label }}</span>
+        </a>
 
-      <a href="#" @click.prevent="currentView = 'history'"
-        :class="currentView === 'history' ? 'bg-accent/10 text-accent border-accent/20' : 'text-muted-foreground hover:bg-muted/50 border-transparent hover:text-foreground'"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium shadow-sm transition-colors border">
-        <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        <span class="text-sm shrink-0">追溯查询</span>
-      </a>
+        <!-- 可展开的分组 -->
+        <div v-else>
+          <a href="#" @click.prevent="toggleGroup(item.label)"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium shadow-sm transition-colors border"
+            :class="groupActiveClass(item)">
+            <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="item.icon" /></svg>
+            <span class="text-sm shrink-0 flex-1">{{ item.label }}</span>
+            <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-90': expandedGroups[item.label] }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
 
-      <a href="#" @click.prevent="currentView = 'device_data'"
-        :class="currentView === 'device_data' ? 'bg-accent/10 text-accent border-accent/20' : 'text-muted-foreground hover:bg-muted/50 border-transparent hover:text-foreground'"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium shadow-sm transition-colors border">
-        <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-        <span class="text-sm shrink-0">数采查询</span>
-      </a>
+          <!-- 子菜单 -->
+          <div v-show="expandedGroups[item.label]" class="mt-0.5 space-y-0.5 relative pl-7">
+            <div class="absolute left-[18px] top-1 bottom-1 w-px bg-gradient-to-b from-blue-300/50 to-blue-100/20"></div>
+            <a v-for="child in item.children!" :key="child.label"
+              href="#" @click.prevent="currentView = child.view!"
+              :class="currentView === child.view ? 'bg-accent/10 text-accent border-accent/20' : 'text-muted-foreground hover:bg-muted/50 border-transparent hover:text-foreground'"
+              class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors border text-sm relative">
+              <div class="absolute left-[-17px] top-1/2 w-[14px] h-px bg-gradient-to-r from-blue-300/50 to-transparent"></div>
+              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="child.icon" /></svg>
+              <span class="text-xs shrink-0">{{ child.label }}</span>
+            </a>
+          </div>
+        </div>
+      </template>
     </nav>
 
     <div class="p-4 border-t border-border/40 w-64">
@@ -48,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject } from 'vue'
+import { ref, reactive, computed, inject } from 'vue'
 import type { Ref } from 'vue'
 import { useServiceStatus } from '../../composables/useServiceStatus'
 
@@ -64,6 +79,38 @@ const appName = ref('追溯应用')
 const isSidebarOpen = inject<Ref<boolean>>('isSidebarOpen', ref(true))
 const isMobile = inject<Ref<boolean>>('isMobile', ref(false))
 const currentView = inject<Ref<string>>('currentView', ref('home'))
+
+const expandedGroups = reactive<Record<string, boolean>>({})
+
+const toggleGroup = (label: string) => {
+  expandedGroups[label] = !expandedGroups[label]
+}
+
+const groupActiveClass = (group: any) => {
+  const active = group.children?.some((c: any) => currentView.value == c.view)
+  return active ? 'bg-accent/10 text-accent border-accent/20' : 'text-muted-foreground hover:bg-muted/50 border-transparent hover:text-foreground'
+}
+
+interface NavItem {
+  view?: string
+  label: string
+  icon: string
+  children?: NavItem[]
+}
+
+const navItems: NavItem[] = [
+  { view: 'home', label: '首页', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+  { view: 'history', label: '追溯查询', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { view: 'device_data', label: '数采查询', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+  {
+    label: '智能看板',
+    icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+    children: [
+      { view: 'dashboard', label: '看板', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+      { view: 'dashboard_settings', label: '设置', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+    ],
+  },
+]
 </script>
 
 <style scoped>

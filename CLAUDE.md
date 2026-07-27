@@ -78,6 +78,7 @@ The app uses `mg_app_framework` — a Tornado-based microservice framework with 
 - `get_db_handler(db_name=None)` → returns a Motor database handle (defaults to `{organization}_trace_app`)
 - `get_collection_handler(name)` → auto-creates collections and their indexes on first access
 - Add new collection indexes in the `db_index_map` dict at the top of `db.py`; they get created on app startup via `MyInitFunc`
+- 详细的数据库结构（集合、字段、索引等）记录在 `server/database_structure.md`，需要时读取该文件
 
 **Message queue** (`utils/mq_config.py`):
 - `subscribe_key_and_process_func` dict maps MQ routing keys to async handler functions

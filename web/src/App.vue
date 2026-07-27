@@ -1,5 +1,9 @@
 <template>
-  <div class="flex h-screen overflow-hidden bg-background dot-pattern relative">
+  <!-- 全屏看板模式 -->
+  <DashboardView v-if="currentView === 'dashboard'" @exit="currentView = 'home'" />
+
+  <!-- 正常布局 -->
+  <div v-else class="flex h-screen overflow-hidden bg-background dot-pattern relative">
     <Sidebar />
 
     <div v-if="isMobile && isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm transition-opacity md:hidden"></div>
@@ -10,6 +14,7 @@
         <HomeView v-show="currentView === 'home'" />
         <TraceQueryView v-show="currentView === 'history'" />
         <DeviceDataView v-show="currentView === 'device_data'" />
+        <DashboardSettingsView v-show="currentView === 'dashboard_settings'" />
       </main>
     </div>
   </div>
@@ -22,6 +27,8 @@ import Header from './components/layout/Header.vue'
 import HomeView from './views/HomeView.vue'
 import TraceQueryView from './views/TraceQueryView.vue'
 import DeviceDataView from './views/DeviceDataView.vue'
+import DashboardView from './views/DashboardView.vue'
+import DashboardSettingsView from './views/DashboardSettingsView.vue'
 import { registerServiceWorker } from './registerServiceWorker'
 
 const isSidebarOpen = ref(true)

@@ -1,6 +1,6 @@
 # MES 追溯应用 — MongoDB 数据库结构文档
 
-> 最后更新：2026-07-20（新增 process_params_config）
+> 最后更新：2026-07-27（新增 dashboard_config_1 + 文档更新）
 
 ---
 
@@ -8,7 +8,7 @@
 
 | 属性 | 说明 |
 |------|------|
-| **数据库名称** | `manugence_root`、`{}_config`、`{}_order_retrospect`、`{}_workorder`、`{}_scan_code_data`、`idi_{}`、`idi_{}_cloud_management`、`{}_manual_trace`（`{}` 为组织代码） |
+| **数据库名称** | `manugence_root`、`{}_config`、`{}_order_retrospect`、`{}_workorder`、`{}_scan_code_data`、`idi_{}`、`idi_{}_cloud_management`、`{}_manual_trace`、`{}_trace_app`（`{}` 为组织代码） |
 | **MongoDB 地址** |  |
 
 ---
@@ -585,6 +585,23 @@
 - `process_code` → `{}_config.production_config_mgm_process_info.工序编码`（多对一）
 - `device_code` → `idi_{}_cloud_management.device.code`（多对一）
 - `product_code` → `{}_config.production_config_mgm_material_info.物料编码`（多对一）
+
+---
+
+### 10. `{}_trace_app` 数据库
+
+#### 10.1 `dashboard_config_1` — 智能看板配置
+
+**用途：** 存储智能看板的配置信息，目前仅包含看板标题。支持通过设置页面修改。
+
+**字段定义：**
+
+| 字段 | 类型 | 说明 | 示例值 |
+|------|------|------|--------|
+| `_id` | ObjectId | 主键 | `6a5717b4bb4651c9bd7ba801` |
+| `title` | string | 看板标题 | `智能生产看板` |
+| `created_at` | datetime | 创建时间 | `2026-07-27T10:00:00.000Z` |
+| `updated_at` | datetime | 更新时间 | `2026-07-27T10:00:00.000Z` |
 
 ---
 

@@ -143,6 +143,17 @@ class ProcessParamResponse(BaseResponse):
     data: List[ProcessParamItem]  # 工艺参数记录列表
 
 
+# ==================== 智能看板配置 ====================
+
+class DashboardConfigRequest(TypedDict):
+    """看板配置请求参数"""
+    title: str  # 看板标题
+
+
+class DashboardConfigResponse(BaseResponse):
+    data: Dict[str, Any]  # 看板配置（title 等）
+
+
 # ==================== 设备数采查询 ====================
 
 class DeviceItem(TypedDict):
