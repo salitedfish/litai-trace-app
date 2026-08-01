@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import api from '../api/trace-app'
+import api from '../../api/trace-app'
 
 const title = ref('')
 const saving = ref(false)

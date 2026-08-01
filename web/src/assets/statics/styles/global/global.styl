@@ -1,0 +1,14 @@
+image-func(name)
+    background-image name
+    background-repeat no-repeat
+    background-size 100% 100%
+text-hidden()
+    overflow hidden
+    text-overflow ellipsis
+    white-space nowrap
+
+fx($justify-content, $align-items, $direction = row)
+    display flex
+    justify-content $justify-content
+    align-items $align-items
+    flex-direction $direction

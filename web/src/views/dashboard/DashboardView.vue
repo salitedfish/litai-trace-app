@@ -16,11 +16,17 @@
             <span class="status-dot"></span>
             <span>系统运行中</span>
           </div>
+          <button class="filter-btn" @click="showFilter = true" title="更多操作">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
           <button class="exit-btn" @click="emit('exit')" title="退出看板">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-            <span>退出</span>
+            <!-- <span>退出</span> -->
           </button>
         </div>
       </div>
@@ -35,34 +41,9 @@
       </div>
     </header>
 
-    <!-- 主体 - flex-1 撑满剩余高度 -->
+    <!-- 主体 -->
     <main class="dashboard-main">
-      <!-- KPI 卡片行 -->
-      <section class="kpi-row">
-        <div class="kpi-card" v-for="(kpi, idx) in kpiList" :key="idx" :style="{ animationDelay: `${idx * 0.1}s` }">
-          <div class="kpi-icon" :style="{ background: kpi.iconBg }">
-            <svg class="w-5 h-5" :style="{ color: kpi.iconColor }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="kpi.iconPath" />
-            </svg>
-          </div>
-          <div class="kpi-info">
-            <span class="kpi-label">{{ kpi.label }}</span>
-            <div class="kpi-value-row">
-              <span class="kpi-value" ref="kpiRefs">{{ formatKpiValue(kpi) }}</span>
-              <span class="kpi-unit">{{ kpi.unit }}</span>
-            </div>
-            <div class="kpi-trend" :class="kpi.trend > 0 ? 'trend-up' : 'trend-down'">
-              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path v-if="kpi.trend > 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-              <span>{{ Math.abs(kpi.trend) }}%</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 图表行 — flex-1 撑满剩余，内部再等分 -->
+      <!-- 图表行 -->
       <section class="charts-row">
         <!-- 产量趋势图 -->
         <div class="chart-card chart-card-wide">
@@ -90,60 +71,66 @@
           </div>
         </div>
 
-        <!-- 良品率 -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3 class="chart-title">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              质量概览
-            </h3>
-          </div>
-          <div class="chart-body fill flex-center">
-            <div class="donut-container">
-              <svg class="donut-svg" viewBox="0 0 120 120">
-                <circle class="donut-track" cx="60" cy="60" r="50" fill="none" stroke-width="12"/>
-                <circle class="donut-segment donut-segment-1" cx="60" cy="60" r="50" fill="none" stroke-width="12"
-                  stroke-dasharray="251.2" stroke-dashoffset="0" style="animation-delay: 0.3s"/>
-                <circle class="donut-segment donut-segment-2" cx="60" cy="60" r="50" fill="none" stroke-width="12"
-                  stroke-dasharray="31.4" stroke-dashoffset="-251.2" style="animation-delay: 0.5s"/>
-                <circle class="donut-segment donut-segment-3" cx="60" cy="60" r="50" fill="none" stroke-width="12"
-                  stroke-dasharray="31.4" stroke-dashoffset="-282.6" style="animation-delay: 0.7s"/>
-              </svg>
-              <div class="donut-center">
-                <span class="donut-center-value">98.2%</span>
-                <span class="donut-center-label">良品率</span>
-              </div>
-            </div>
-            <div class="donut-legend">
-              <div class="legend-item"><span class="legend-dot dot-green"></span>良品 <span class="legend-num">12,580</span></div>
-              <div class="legend-item"><span class="legend-dot dot-yellow"></span>返工 <span class="legend-num">168</span></div>
-              <div class="legend-item"><span class="legend-dot dot-red"></span>废品 <span class="legend-num">62</span></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 设备稼动率 -->
-        <div class="chart-card">
+        <!-- OEE 综合展示 -->
+        <div class="chart-card chart-card-wide">
           <div class="chart-header">
             <h3 class="chart-title">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
               </svg>
-              设备稼动率
+              设备 OEE
             </h3>
+            <span class="chart-badge" :class="{ 'text-green-400': connected }">
+              {{ connected ? '实时' : '断开' }}
+            </span>
           </div>
-          <div class="chart-body fill flex-center">
-            <div class="gauge-wrapper">
-              <svg class="gauge-svg" viewBox="0 0 200 120">
-                <path class="gauge-track" d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke-width="14" stroke-linecap="round"/>
-                <path class="gauge-fill" d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke-width="14" stroke-linecap="round"
-                  stroke-dasharray="276" stroke-dashoffset="55.2" style="animation-delay: 0.3s"/>
+          <div class="chart-body fill oee-body">
+            <!-- 左侧：仪表盘 -->
+            <div class="oee-gauge-area">
+              <svg class="oee-gauge-svg" viewBox="0 0 200 110">
+                <!-- 背景弧 -->
+                <path d="M20,95 A80,80 0 0,1 180,95" fill="none" stroke-width="14" stroke-linecap="round" stroke="rgba(59,130,246,0.08)"/>
+                <!-- 色区：红 0-30% -->
+                <path d="M20,95 A80,80 0 0,1 72,33.6" fill="none" stroke-width="14" stroke-linecap="round" stroke="rgba(239,68,68,0.15)"/>
+                <!-- 色区：黄 30-60% -->
+                <path d="M72,33.6 A80,80 0 0,1 128,33.6" fill="none" stroke-width="14" stroke-linecap="round" stroke="rgba(245,158,11,0.15)"/>
+                <!-- 色区：绿 60-100% -->
+                <path d="M128,33.6 A80,80 0 0,1 180,95" fill="none" stroke-width="14" stroke-linecap="round" stroke="rgba(16,185,129,0.15)"/>
+                <!-- 填充弧渐变 -->
+                <defs>
+                  <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#ef4444"/>
+                    <stop offset="40%" stop-color="#f59e0b"/>
+                    <stop offset="70%" stop-color="#10b981"/>
+                    <stop offset="100%" stop-color="#06b6d4"/>
+                  </linearGradient>
+                </defs>
+                <path d="M20,95 A80,80 0 0,1 180,95" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round"
+                  stroke-dasharray="264" :stroke-dashoffset="gaugeOffset"/>
+                <!-- 刻度 -->
+                <circle cx="20" cy="95" r="3" fill="rgba(148,184,255,0.3)"/>
+                <circle cx="51.2" cy="43.6" r="2.5" fill="rgba(148,184,255,0.2)"/>
+                <circle cx="100" cy="15" r="3" fill="rgba(148,184,255,0.3)"/>
+                <circle cx="148.8" cy="43.6" r="2.5" fill="rgba(148,184,255,0.2)"/>
+                <circle cx="180" cy="95" r="3" fill="rgba(148,184,255,0.3)"/>
               </svg>
-              <div class="gauge-center">
-                <span class="gauge-value">87.6%</span>
-                <span class="gauge-label">稼动率</span>
+              <div class="oee-gauge-value">
+                <span class="oee-gauge-num">{{ oeePercent.toFixed(1) }}%</span>
+              </div>
+              <div class="oee-gauge-label">OEE</div>
+              <div class="oee-target">目标 {{ oeeData.target }}%</div>
+            </div>
+
+            <!-- 右侧：三个子指标 + 进度条 -->
+            <div class="oee-sub-list">
+              <div v-for="(item, idx) in subMetrics" :key="idx" class="oee-sub-item">
+                <div class="oee-sub-header">
+                  <span class="oee-sub-label">{{ item.label }}</span>
+                  <span class="oee-sub-value">{{ item.displayValue }}</span>
+                </div>
+                <div class="oee-progress-track">
+                  <div class="oee-progress-fill" :style="{ width: item.percent + '%', background: item.color }"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -203,16 +190,65 @@
 
     <!-- 底部装饰线 -->
     <div class="footer-line"></div>
+
+    <!-- 操作弹窗 -->
+    <div v-if="showFilter" class="filter-overlay" @click.self="showFilter = false">
+      <div class="filter-modal">
+        <div class="filter-modal-header">
+          <span class="filter-modal-title">更多操作</span>
+          <button class="filter-modal-close" @click="showFilter = false">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="filter-modal-body">
+          <div class="filter-field">
+            <label class="filter-label">开始日期</label>
+            <input type="date" class="filter-input" :value="startDate" @change="onStartDateChange" />
+          </div>
+          <div class="filter-field">
+            <label class="filter-label">结束日期</label>
+            <input type="date" class="filter-input" :value="endDate" @change="onEndDateChange" />
+          </div>
+        </div>
+        <div class="filter-modal-footer">
+          <button class="filter-btn-primary" @click="showFilter = false">确认</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import api from '../api/trace-app'
+import api from '../../api/trace-app'
+import { useDashboardWebSocket } from '../../composables/useDashboardWebSocket'
 
 const emit = defineEmits<{ (e: 'exit'): void }>()
 
 const pageTitle = ref('智能生产看板')
+
+// ========== WebSocket OEE 数据 ==========
+const { oeeData, connected, connect, disconnect, setQueryDate } = useDashboardWebSocket()
+
+// ========== 日期选择 ==========
+const showFilter = ref(false)
+const today = new Date().toISOString().slice(0, 10)
+const startDate = ref(today)
+const endDate = ref(today)
+
+function onStartDateChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  startDate.value = target.value
+  setQueryDate(startDate.value, endDate.value)
+}
+
+function onEndDateChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  endDate.value = target.value
+  setQueryDate(startDate.value, endDate.value)
+}
 
 // ========== 时钟 ==========
 const currentDate = ref('')
@@ -234,6 +270,7 @@ let clockTimer: number
 onMounted(async () => {
   updateClock()
   clockTimer = window.setInterval(updateClock, 1000)
+  connect()
   loadDevices()
   try {
     const res = await api.getDashboardConfig()
@@ -247,64 +284,46 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearInterval(clockTimer)
+  disconnect()
 })
 
-// ========== KPI 数据 ==========
-const kpiList = ref([
-  {
-    label: '今日产量',
-    value: '12842',
-    displayValue: 0,
-    targetValue: 12842,
-    unit: '件',
-    trend: 12.5,
-    iconBg: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-    iconColor: '#fff',
-    iconPath: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
-  },
-  {
-    label: '设备稼动率',
-    value: '87.6',
-    displayValue: 0,
-    targetValue: 87.6,
-    unit: '%',
-    trend: 3.2,
-    iconBg: 'linear-gradient(135deg, #06b6d4, #0891b2)',
-    iconColor: '#fff',
-    iconPath: 'M4 6h16M4 10h16M4 14h16M4 18h16',
-  },
-  {
-    label: '良品率',
-    value: '98.2',
-    displayValue: 0,
-    targetValue: 98.2,
-    unit: '%',
-    trend: 1.8,
-    iconBg: 'linear-gradient(135deg, #10b981, #059669)',
-    iconColor: '#fff',
-    iconPath: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-  },
-  {
-    label: '在线设备',
-    value: '18',
-    displayValue: 0,
-    targetValue: 18,
-    unit: '台',
-    trend: -1.2,
-    iconBg: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-    iconColor: '#fff',
-    iconPath: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z',
-  },
-])
+// ========== OEE 子指标 ==========
+const subMetrics = computed(() => {
+  const o = oeeData.value
+  return [
+    {
+      label: '时间开动率',
+      displayValue: typeof o.availability == 'number' ? o.availability.toFixed(1) + '%' : o.availability,
+      percent: typeof o.availability == 'number' ? Math.min(o.availability, 100) : 0,
+      color: '#25EFBD',
+    },
+    {
+      label: '性能开动率',
+      displayValue: typeof o.performance == 'number' ? o.performance.toFixed(1) + '%' : o.performance,
+      percent: typeof o.performance == 'number' ? Math.min(o.performance, 100) : 0,
+      color: '#FE8C45',
+    },
+    {
+      label: '合格率',
+      displayValue: typeof o.quality == 'number' ? o.quality.toFixed(1) + '%' : o.quality,
+      percent: typeof o.quality == 'number' ? Math.min(o.quality, 100) : 0,
+      color: '#EF5454',
+    },
+  ]
+})
 
-const kpiRefs = ref<any[]>([])
+/** OEE 百分比 */
+const oeePercent = computed(() => {
+  const v = oeeData.value.oee
+  if (typeof v == 'number') return Math.min(v, 100)
+  return 0
+})
 
-const formatKpiValue = (kpi: any) => {
-  if (kpi.value.includes('.')) {
-    return Number(kpi.displayValue).toFixed(1)
-  }
-  return Math.floor(kpi.displayValue).toLocaleString()
-}
+/** 仪表盘弧线偏移（半圆弧长 π × 80 ≈ 251 + 线帽修正） */
+const gaugeOffset = computed(() => {
+  const c = 264
+  return c - (c * oeePercent.value) / 100
+})
 
 // ========== 产量数据 ==========
 const productionData = [
@@ -317,7 +336,7 @@ const productionData = [
   { label: '07/27', value: 2050, percent: 88 },
 ]
 
-// ========== 设备数据（从接口获取，状态随机） ==========
+// ========== 设备数据 ==========
 const statusTextMap: Record<string, string> = { running: '运行中', stopped: '已停机', standby: '待机中' }
 const statusOptions = ['running', 'stopped', 'standby'] as const
 
@@ -340,7 +359,6 @@ const loadDevices = async () => {
     })
   } catch (err: any) {
     console.error('加载设备列表失败:', err)
-    // fallback 静态数据
     deviceList.value = [
       { name: 'SMT贴片机#1', code: 'SMT-001', status: 'running', statusText: '运行中' },
       { name: '回流焊炉#1', code: 'REF-001', status: 'running', statusText: '运行中' },
@@ -425,7 +443,7 @@ const alarmList = [
   opacity: 0.6;
 }
 
-/* ========== 顶栏 — 固定高度 ========== */
+/* ========== 顶栏 ========== */
 .dashboard-header {
   @apply relative z-10 flex items-center justify-between shrink-0;
   height: 60px;
@@ -462,6 +480,118 @@ const alarmList = [
 .header-title {
   @apply text-lg font-bold tracking-tight;
   color: #f0f4ff;
+}
+
+.filter-btn {
+  @apply flex items-center gap-1.5 ml-3 px-3 py-1.5 rounded-full text-xs transition-all duration-200;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  color: rgba(148, 184, 255, 0.8);
+}
+
+.filter-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.25);
+  color: #93c5fd;
+}
+
+/* ========== 时间筛选弹窗 ========== */
+.filter-overlay {
+  @apply fixed inset-0 z-[10000] flex items-center justify-center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.filter-modal {
+  @apply rounded-xl;
+  width: 320px;
+  background: linear-gradient(135deg, #1a2d4a, #0f1f3d);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.filter-modal-header {
+  @apply flex items-center justify-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.filter-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f0f4ff;
+}
+
+.filter-modal-close {
+  @apply flex items-center justify-center rounded-full transition-colors;
+  width: 28px;
+  height: 28px;
+  color: rgba(148, 184, 255, 0.5);
+}
+
+.filter-modal-close:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+.filter-modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-field {
+  @apply flex flex-col gap-1.5;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(148, 184, 255, 0.6);
+}
+
+.filter-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  background: rgba(59, 130, 246, 0.06);
+  color: #93c5fd;
+  font-size: 13px;
+  font-family: monospace;
+  outline: none;
+}
+
+.filter-input:focus {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.filter-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7) sepia(1) hue-rotate(190deg);
+  cursor: pointer;
+}
+
+.filter-modal-footer {
+  padding: 10px 16px 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.filter-btn-primary {
+  padding: 6px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.filter-btn-primary:hover {
+  opacity: 0.9;
 }
 
 .datetime-display {
@@ -502,7 +632,7 @@ const alarmList = [
   color: #f87171;
 }
 
-/* ========== 主体 — flex 撑满剩余空间 ========== */
+/* ========== 主体 ========== */
 .dashboard-main {
   @apply relative z-10 flex flex-col flex-1 min-h-0;
   gap: 12px;
@@ -510,70 +640,7 @@ const alarmList = [
   padding-bottom: 12px;
 }
 
-/* ========== KPI 卡片行 — 固定比例 ========== */
-.kpi-row {
-  @apply grid grid-cols-4 gap-3 shrink-0;
-}
-
-.kpi-card {
-  @apply rounded-xl p-4 flex items-start gap-3;
-  background: linear-gradient(135deg, rgba(30, 58, 95, 0.5), rgba(15, 31, 61, 0.3));
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  /* opt: removed backdrop-filter for perf */
-  animation: kpiFadeIn 0.6s ease-out both;
-}
-
-@keyframes kpiFadeIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.kpi-card:hover {
-  border-color: rgba(59, 130, 246, 0.35);
-  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.1);
-  transform: translateY(-2px);
-  transition: all 0.3s ease;
-}
-
-.kpi-icon {
-  @apply w-10 h-10 rounded-xl flex items-center justify-center shrink-0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.kpi-info {
-  @apply flex-1 min-w-0;
-}
-
-.kpi-label {
-  @apply text-xs font-medium;
-  color: rgba(148, 184, 255, 0.7);
-  display: block;
-  margin-bottom: 2px;
-}
-
-.kpi-value-row {
-  @apply flex items-baseline gap-1;
-}
-
-.kpi-value {
-  @apply text-2xl font-bold tracking-tight;
-  color: #f0f4ff;
-  font-variant-numeric: tabular-nums;
-}
-
-.kpi-unit {
-  @apply text-xs;
-  color: rgba(148, 184, 255, 0.5);
-}
-
-.kpi-trend {
-  @apply flex items-center gap-0.5 mt-1 text-xs font-medium;
-}
-
-.trend-up { color: #34d399; }
-.trend-down { color: #f87171; }
-
-/* ========== 图表行 — flex-1，3列 ========== */
+/* ========== 图表行 ========== */
 .charts-row {
   @apply grid grid-cols-4 gap-3 flex-1 min-h-0;
 }
@@ -582,7 +649,6 @@ const alarmList = [
   @apply rounded-xl p-4 flex flex-col;
   background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 31, 61, 0.2));
   border: 1px solid rgba(59, 130, 246, 0.12);
-  /* opt: removed backdrop-filter for perf */
   min-height: 0;
 }
 
@@ -613,10 +679,6 @@ const alarmList = [
 
 .chart-body.fill {
   @apply flex-1 min-h-0;
-}
-
-.flex-center {
-  @apply flex items-center justify-center;
 }
 
 /* ========== 柱状图 ========== */
@@ -669,112 +731,98 @@ const alarmList = [
   color: rgba(148, 184, 255, 0.5);
 }
 
-/* ========== 环形图 ========== */
-.donut-container {
-  @apply relative;
-  width: 130px;
-  height: 130px;
+/* ========== OEE 面板 ========== */
+.oee-body {
+  @apply flex flex-1 items-center gap-4;
+  padding: 0 4px;
+  min-height: 0;
 }
 
-.donut-svg {
-  @apply w-full h-full;
-  transform: rotate(-90deg);
+.oee-gauge-area {
+  @apply relative flex flex-col items-center shrink-0;
+  width: 160px;
 }
 
-.donut-track {
-  stroke: rgba(59, 130, 246, 0.08);
-}
-
-.donut-segment {
-  transition: stroke-dashoffset 1.5s ease;
-  animation: donutFill 1.5s ease-out both;
-}
-
-@keyframes donutFill {
-  from { stroke-dashoffset: 314; }
-}
-
-.donut-segment-1 { stroke: #34d399; }
-.donut-segment-2 { stroke: #fbbf24; }
-.donut-segment-3 { stroke: #f87171; }
-
-.donut-center {
-  @apply absolute inset-0 flex flex-col items-center justify-center;
-}
-
-.donut-center-value {
-  @apply text-xl font-bold;
-  color: #f0f4ff;
-}
-
-.donut-center-label {
-  @apply text-[10px];
-  color: rgba(148, 184, 255, 0.6);
-}
-
-.donut-legend {
-  @apply flex justify-center gap-3 mt-2 text-xs;
-  color: rgba(200, 218, 255, 0.7);
-}
-
-.legend-item {
-  @apply flex items-center gap-1;
-}
-
-.legend-dot {
-  @apply w-2 h-2 rounded-full;
-}
-
-.dot-green { background: #34d399; }
-.dot-yellow { background: #fbbf24; }
-.dot-red { background: #f87171; }
-
-.legend-num {
-  @apply font-medium;
-  color: rgba(200, 218, 255, 0.9);
-}
-
-/* ========== 仪表盘 ========== */
-.gauge-wrapper {
-  @apply relative;
-  width: 180px;
-}
-
-.gauge-svg {
-  @apply w-full;
+.oee-gauge-svg {
+  width: 140px;
+  height: 77px;
   overflow: visible;
 }
 
-.gauge-track {
+.oee-gauge-track {
   stroke: rgba(59, 130, 246, 0.08);
 }
 
-.gauge-fill {
-  stroke: #3b82f6;
-  animation: gaugeFill 1.5s ease-out both;
-  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.4));
+.oee-gauge-fill {
+  stroke: #60a5fa;
+  transition: stroke-dashoffset 1s ease;
 }
 
-@keyframes gaugeFill {
-  from { stroke-dashoffset: 276; }
+.oee-gauge-value {
+  margin-top: 0;
+  line-height: 1;
 }
 
-.gauge-center {
-  @apply absolute flex flex-col items-center;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -60%);
+.oee-gauge-num {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f0f4ff;
+  font-variant-numeric: tabular-nums;
 }
 
-.gauge-value {
-  @apply text-3xl font-bold;
-  color: #60a5fa;
-  text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+.oee-gauge-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(148, 184, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 1px;
 }
 
-.gauge-label {
-  @apply text-xs;
-  color: rgba(148, 184, 255, 0.6);
+.oee-target {
+  font-size: 10px;
+  color: rgba(148, 184, 255, 0.3);
+  margin-top: 1px;
+}
+
+.oee-sub-list {
+  @apply flex-1 grid gap-2;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+
+.oee-sub-item {
+  @apply flex flex-col justify-center;
+}
+
+.oee-sub-header {
+  @apply flex items-center justify-between mb-0.5;
+}
+
+.oee-sub-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(200, 218, 255, 0.75);
+}
+
+.oee-sub-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0f4ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.oee-progress-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.oee-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s ease;
 }
 
 /* ========== 底部行 ========== */
@@ -788,7 +836,6 @@ const alarmList = [
   padding: 10px 12px;
   background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 31, 61, 0.2));
   border: 1px solid rgba(59, 130, 246, 0.12);
-  /* opt: removed backdrop-filter for perf */
 }
 
 .info-card-header {
@@ -853,7 +900,6 @@ const alarmList = [
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 
 .device-status-tag {
   font-size: 9px;
@@ -952,7 +998,7 @@ const alarmList = [
   background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.2), transparent);
 }
 
-/* ========== 全局禁止选中（电视专用） ========== */
+/* ========== 全局禁止选中 ========== */
 .dashboard-container * {
   user-select: none;
   -webkit-user-select: none;

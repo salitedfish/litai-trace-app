@@ -27,8 +27,8 @@ import Header from './components/layout/Header.vue'
 import HomeView from './views/HomeView.vue'
 import TraceQueryView from './views/TraceQueryView.vue'
 import DeviceDataView from './views/DeviceDataView.vue'
-import DashboardView from './views/DashboardView.vue'
-import DashboardSettingsView from './views/DashboardSettingsView.vue'
+import DashboardView from './views/dashboard/DashboardView.vue'
+import DashboardSettingsView from './views/dashboard/DashboardSettingsView.vue'
 import { registerServiceWorker } from './registerServiceWorker'
 
 const isSidebarOpen = ref(true)
