@@ -4,6 +4,7 @@ from trace_app.handlers.http_handler.handler import SampleHandler
 from trace_app.handlers.http_handler.trace_handler import TraceHandler
 from trace_app.handlers.http_handler.device_data_handler import DeviceDataHandler
 from trace_app.handlers.http_handler.dashboard_handler import DashboardHandler
+from trace_app.handlers.http_handler.base_config_handler import BaseConfigHandler
 from trace_app.utils.swagger_utils import generate_handler_classes
 
 url = []
@@ -12,6 +13,7 @@ r.register(SampleHandler)
 r.register(TraceHandler)
 r.register(DeviceDataHandler)
 r.register(DashboardHandler)
+r.register(BaseConfigHandler)
 for path, handler_cls, methods in generate_handler_classes(SampleHandler):
     r.register(handler_cls)
 for path, handler_cls, methods in generate_handler_classes(TraceHandler):
@@ -19,5 +21,7 @@ for path, handler_cls, methods in generate_handler_classes(TraceHandler):
 for path, handler_cls, methods in generate_handler_classes(DeviceDataHandler):
     r.register(handler_cls)
 for path, handler_cls, methods in generate_handler_classes(DashboardHandler):
+    r.register(handler_cls)
+for path, handler_cls, methods in generate_handler_classes(BaseConfigHandler):
     r.register(handler_cls)
 url.extend(r.host_handlers)

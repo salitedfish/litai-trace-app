@@ -34,10 +34,7 @@
         <h1 class="header-title">{{ pageTitle }}</h1>
       </div>
       <div class="header-right">
-        <div class="datetime-display">
-          <span class="datetime-date">{{ currentDate }}</span>
-          <span class="datetime-time">{{ currentTime }}</span>
-        </div>
+        <DashboardClock />
       </div>
     </header>
 
@@ -45,34 +42,8 @@
     <main class="dashboard-main">
       <!-- 图表行 -->
       <section class="charts-row">
-        <!-- 产量趋势图 -->
-        <div class="chart-card chart-card-wide">
-          <div class="chart-header">
-            <h3 class="chart-title">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-              </svg>
-              近7日产量趋势
-            </h3>
-            <span class="chart-badge">周同比 +8.3%</span>
-          </div>
-          <div class="chart-body fill">
-            <div class="bar-chart">
-              <div class="bar-group" v-for="(bar, idx) in productionData" :key="idx" :style="{ animationDelay: `${idx * 0.08}s` }">
-                <div class="bar-container">
-                  <div class="bar-fill" :style="{ height: bar.percent + '%' }">
-                    <div class="bar-glow"></div>
-                  </div>
-                </div>
-                <span class="bar-value">{{ bar.value }}</span>
-                <span class="bar-label">{{ bar.label }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- OEE 综合展示 -->
-        <div class="chart-card chart-card-wide">
+        <!-- 设备 OEE -->
+        <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -135,55 +106,55 @@
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- 底部行 -->
-      <section class="bottom-row">
-        <!-- 设备状态 -->
-        <div class="info-card">
-          <div class="info-card-header">
-            <h3 class="chart-title">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-              </svg>
-              设备运行状态
-            </h3>
-            <span class="device-summary">运行 {{ deviceStats.running }} / 停机 {{ deviceStats.stopped }} / 待机 {{ deviceStats.standby }}</span>
-          </div>
-          <div class="device-grid">
-            <div class="device-item" v-for="(dev, idx) in deviceList" :key="idx">
-              <div class="device-indicator" :class="'status-' + dev.status"></div>
-              <div class="device-info">
-                <span class="device-name">{{ dev.name }}</span>
+        <!-- 预留空间：工艺路线工序设备展示 -->
+        <div class="chart-card chart-card-placeholder col-span-2">
+          <div v-if="!selectedRouting" class="placeholder-text">预留区域</div>
+          <div v-else-if="routingProcessesLoading" class="placeholder-text">加载中...</div>
+          <div v-else-if="routingProcessesError" class="placeholder-text">{{ routingProcessesError }}</div>
+          <div v-else-if="routingProcesses.length == 0" class="placeholder-text">该工艺路线暂无工序数据</div>
+          <div v-else class="processes-wrap">
+            <div class="processes-title">{{ routingProcessesTitle }}</div>
+            <div class="devices-grid">
+              <div v-for="dev in allDevices" :key="dev.device_code" class="device-tile" :title="dev.process_name + ' · ' + dev.device_code">
+                <img :src="deviceIcon(dev.device_type, dev.status)" class="device-tile-icon" />
+                <span class="device-tile-name">{{ dev.device_name }}</span>
               </div>
-              <div class="device-status-tag" :class="'tag-' + dev.status">{{ dev.statusText }}</div>
             </div>
           </div>
         </div>
 
-        <!-- 实时报警 -->
-        <div class="info-card">
-          <div class="info-card-header">
+        <!-- 近7日产量趋势 -->
+        <div class="chart-card">
+          <div class="chart-header">
             <h3 class="chart-title">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
               </svg>
-              实时报警
+              近7日产量趋势
             </h3>
-            <span class="alarm-badge">{{ alarmList.length }} 条未处理</span>
+            <span class="chart-badge">周同比 +8.3%</span>
           </div>
-          <div class="alarm-list">
-            <div class="alarm-item" v-for="(alarm, idx) in alarmList" :key="idx" :style="{ animationDelay: `${idx * 0.15}s` }">
-              <div class="alarm-level" :class="'level-' + alarm.level">
-                <span class="alarm-dot"></span>
+          <div class="chart-body fill">
+            <div class="bar-chart">
+              <div class="bar-group" v-for="(bar, idx) in productionData" :key="idx" :style="{ animationDelay: `${idx * 0.08}s` }">
+                <div class="bar-container">
+                  <div class="bar-fill" :style="{ height: bar.percent + '%' }">
+                    <div class="bar-glow"></div>
+                  </div>
+                </div>
+                <span class="bar-value">{{ bar.value }}</span>
+                <span class="bar-label">{{ bar.label }}</span>
               </div>
-              <div class="alarm-content">
-                <span class="alarm-msg">{{ alarm.message }}</span>
-                <span class="alarm-time">{{ alarm.time }}</span>
-              </div>
-              <div class="alarm-device">{{ alarm.device }}</div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- 下部分：全部预留 -->
+      <section class="charts-row">
+        <div class="chart-card chart-card-placeholder col-span-4">
+          <span class="placeholder-text">预留区域</span>
         </div>
       </section>
     </main>
@@ -211,6 +182,16 @@
             <label class="filter-label">结束日期</label>
             <input type="date" class="filter-input" :value="endDate" @change="onEndDateChange" />
           </div>
+          <div class="filter-field">
+            <label class="filter-label">工艺路线</label>
+            <DarkSelect
+              v-model="selectedRouting"
+              :options="routingOptions"
+              :disabled="routingLoading"
+              placeholder="请选择工艺路线"
+              searchable
+            />
+          </div>
         </div>
         <div class="filter-modal-footer">
           <button class="filter-btn-primary" @click="showFilter = false">确认</button>
@@ -221,9 +202,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import api from '../../api/trace-app'
 import { useDashboardWebSocket } from '../../composables/useDashboardWebSocket'
+import DarkSelect from '../../components/DarkSelect.vue'
+import DashboardClock from './DashboardClock.vue'
+import deviceDetectOff from '../../assets/device_status/检测(关机).png'
+import deviceDetectStandby from '../../assets/device_status/检测(待机).png'
+import deviceDetectFault from '../../assets/device_status/检测(故障).png'
+import deviceDetectRunning from '../../assets/device_status/检测(运行).png'
+import deviceNonDetectOff from '../../assets/device_status/非检测(关机).png'
+import deviceNonDetectStandby from '../../assets/device_status/非检测(待机).png'
+import deviceNonDetectFault from '../../assets/device_status/非检测(故障).png'
+import deviceNonDetectRunning from '../../assets/device_status/非检测(运行).png'
 
 const emit = defineEmits<{ (e: 'exit'): void }>()
 
@@ -250,28 +241,91 @@ function onEndDateChange(e: Event) {
   setQueryDate(startDate.value, endDate.value)
 }
 
-// ========== 时钟 ==========
-const currentDate = ref('')
-const currentTime = ref('')
+// ========== 工艺路线下拉 ==========
+const routingList = ref<{ routing_code: string, routing_name: string, routing_type: string, workshop_code: string, workshop_name: string }[]>([])
+const selectedRouting = ref('')
+const routingLoading = ref(false)
 
-const updateClock = () => {
-  const now = new Date()
-  const days = ['日', '一', '二', '三', '四', '五', '六']
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const d = String(now.getDate()).padStart(2, '0')
-  const day = days[now.getDay()]
-  currentDate.value = `${y}年${m}月${d}日 星期${day}`
-  currentTime.value = now.toLocaleTimeString('zh-CN', { hour12: false })
+const routingOptions = computed(() => {
+  return routingList.value.map(item => ({ label: item.routing_name, value: item.routing_code }))
+})
+
+const loadRoutingList = async () => {
+  routingLoading.value = true
+  try {
+    const res = await api.queryRoutingList()
+    routingList.value = res.data || []
+  } catch (err: any) {
+    console.error('加载工艺路线列表失败:', err)
+  } finally {
+    routingLoading.value = false
+  }
 }
 
-let clockTimer: number
+// ========== 工艺路线工序设备展示 ==========
+interface RoutingProcess {
+  process_code: string
+  process_name: string
+  process_order: number
+  produce_unit_code: string
+  produce_unit_name: string
+  devices: { device_code: string, device_name: string, device_type: string, status?: string }[]
+}
+
+// 设备类型（检测/非检测）× 状态（关机/待机/故障/运行）→ 图标
+const deviceIcon = (deviceType: string, status: string) => {
+  const detect = deviceType == '检测'
+  if (status == '运行') return detect ? deviceDetectRunning : deviceNonDetectRunning
+  if (status == '待机') return detect ? deviceDetectStandby : deviceNonDetectStandby
+  if (status == '故障') return detect ? deviceDetectFault : deviceNonDetectFault
+  return detect ? deviceDetectOff : deviceNonDetectOff
+}
+
+const routingProcessesTitle = ref('')
+const routingProcesses = ref<RoutingProcess[]>([])
+const routingProcessesLoading = ref(false)
+const routingProcessesError = ref('')
+
+const loadRoutingProcesses = async () => {
+  if (!selectedRouting.value) {
+    routingProcessesTitle.value = ''
+    routingProcesses.value = []
+    routingProcessesError.value = ''
+    return
+  }
+  routingProcessesLoading.value = true
+  routingProcessesError.value = ''
+  try {
+    const res = await api.queryRoutingProcesses(selectedRouting.value)
+    routingProcessesTitle.value = res.data?.routing_name || ''
+    routingProcesses.value = res.data?.processes || []
+  } catch (err: any) {
+    console.error('加载工艺路线工序失败:', err)
+    routingProcessesError.value = '工序数据加载失败'
+  } finally {
+    routingProcessesLoading.value = false
+  }
+}
+
+// 切换工艺路线后重新加载工序设备
+watch(selectedRouting, () => {
+  loadRoutingProcesses()
+})
+
+// 按工序顺序拍平所有设备，横向排列自动换行；状态默认关机，后续按其他方式赋值
+const allDevices = computed(() => {
+  const result: { device_code: string, device_name: string, device_type: string, status: string, process_name: string }[] = []
+  for (const p of routingProcesses.value) {
+    for (const dev of p.devices) {
+      result.push({ ...dev, status: dev.status || '关机', process_name: p.process_name })
+    }
+  }
+  return result
+})
 
 onMounted(async () => {
-  updateClock()
-  clockTimer = window.setInterval(updateClock, 1000)
   connect()
-  loadDevices()
+  loadRoutingList()
   try {
     const res = await api.getDashboardConfig()
     if (res.data?.title) {
@@ -283,7 +337,6 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  clearInterval(clockTimer)
   disconnect()
 })
 
@@ -334,44 +387,6 @@ const productionData = [
   { label: '07/25', value: 1980, percent: 85 },
   { label: '07/26', value: 2100, percent: 90 },
   { label: '07/27', value: 2050, percent: 88 },
-]
-
-// ========== 设备数据 ==========
-const statusTextMap: Record<string, string> = { running: '运行中', stopped: '已停机', standby: '待机中' }
-const statusOptions = ['running', 'stopped', 'standby'] as const
-
-const deviceList = ref<{ name: string; code: string; status: string; statusText: string }[]>([])
-
-const deviceStats = computed(() => {
-  const running = deviceList.value.filter(d => d.status == 'running').length
-  const stopped = deviceList.value.filter(d => d.status == 'stopped').length
-  const standby = deviceList.value.filter(d => d.status == 'standby').length
-  return { running, stopped, standby }
-})
-
-const loadDevices = async () => {
-  try {
-    const res = await api.queryDeviceList()
-    const list: { name: string; code: string }[] = res.data || []
-    deviceList.value = list.map(d => {
-      const status = statusOptions[Math.floor(Math.random() * statusOptions.length)]
-      return { ...d, status, statusText: statusTextMap[status] }
-    })
-  } catch (err: any) {
-    console.error('加载设备列表失败:', err)
-    deviceList.value = [
-      { name: 'SMT贴片机#1', code: 'SMT-001', status: 'running', statusText: '运行中' },
-      { name: '回流焊炉#1', code: 'REF-001', status: 'running', statusText: '运行中' },
-    ]
-  }
-}
-
-// ========== 报警数据 ==========
-const alarmList = [
-  { level: 'warning', message: 'SMT-003 温度异常偏高，建议检查加热模块', time: '14:32', device: 'SMT-003' },
-  { level: 'error', message: 'AOI-002 视觉检测偏差超限，需重新校准', time: '14:15', device: 'AOI-002' },
-  { level: 'info', message: 'REF-001 已完成定期维护，状态正常', time: '13:50', device: 'REF-001' },
-  { level: 'warning', message: '原料仓库存低于安全水位，请及时补充', time: '13:20', device: 'WMS' },
 ]
 </script>
 
@@ -498,8 +513,7 @@ const alarmList = [
 /* ========== 时间筛选弹窗 ========== */
 .filter-overlay {
   @apply fixed inset-0 z-[10000] flex items-center justify-center;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .filter-modal {
@@ -594,24 +608,6 @@ const alarmList = [
   opacity: 0.9;
 }
 
-.datetime-display {
-  @apply flex flex-col items-center;
-}
-
-.datetime-date {
-  @apply text-xs;
-  color: rgba(200, 218, 255, 0.7);
-  font-family: monospace;
-}
-
-.datetime-time {
-  @apply text-2xl font-bold tracking-wider;
-  color: #93c5fd;
-  font-family: monospace;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-}
-
 .status-badge {
   @apply flex items-center gap-2 px-3 py-1.5 rounded-full text-xs;
   background: rgba(16, 185, 129, 0.1);
@@ -650,10 +646,6 @@ const alarmList = [
   background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 31, 61, 0.2));
   border: 1px solid rgba(59, 130, 246, 0.12);
   min-height: 0;
-}
-
-.chart-card-wide {
-  @apply col-span-2;
 }
 
 .chart-header {
@@ -825,170 +817,70 @@ const alarmList = [
   transition: width 1s ease;
 }
 
-/* ========== 底部行 ========== */
-.bottom-row {
-  @apply grid grid-cols-2 shrink-0;
-  gap: 8px;
-}
-
-.info-card {
-  @apply rounded-xl flex flex-col;
-  padding: 10px 12px;
-  background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 31, 61, 0.2));
-  border: 1px solid rgba(59, 130, 246, 0.12);
-}
-
-.info-card-header {
-  @apply flex items-center justify-between shrink-0;
-  margin-bottom: 6px;
-}
-
-/* ========== 设备列表 ========== */
-.device-summary {
-  font-size: 10px;
-  color: rgba(148, 184, 255, 0.45);
-}
-
-.device-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 6px;
-  flex: 1;
-  align-content: start;
-}
-
-.device-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 8px;
-  border-radius: 6px;
-  transition: background 0.2s;
-  background: rgba(59, 130, 246, 0.04);
-  border: 1px solid rgba(59, 130, 246, 0.08);
-}
-
-.device-item:hover {
-  background: rgba(59, 130, 246, 0.08);
+/* ========== 预留区域 ========== */
+.chart-card-placeholder {
+  border-style: dashed;
   border-color: rgba(59, 130, 246, 0.15);
 }
 
-.device-indicator {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.status-running { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); animation: pulseDot 2s ease-in-out infinite; will-change: opacity; }
-.status-stopped { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
-.status-standby { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
-
-.device-info {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  line-height: 1.2;
-}
-
-.device-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(200, 218, 255, 0.85);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.device-status-tag {
-  font-size: 9px;
-  padding: 1px 5px;
-  border-radius: 3px;
-  flex-shrink: 0;
-  line-height: 1.4;
-}
-
-.tag-running { background: rgba(16, 185, 129, 0.1); color: #34d399; }
-.tag-stopped { background: rgba(239, 68, 68, 0.1); color: #f87171; }
-.tag-standby { background: rgba(245, 158, 11, 0.1); color: #fbbf24; }
-
-/* ========== 报警列表 ========== */
-.alarm-badge {
-  @apply text-xs px-2 py-0.5 rounded-full font-medium;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  color: #f87171;
-  animation: alarmPulse 2s ease-in-out infinite;
-}
-
-@keyframes alarmPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-.alarm-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  overflow: hidden;
-}
-
-.alarm-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 5px 8px;
-  border-radius: 5px;
-  background: rgba(59, 130, 246, 0.04);
-  border: 1px solid rgba(59, 130, 246, 0.08);
-  animation: alarmSlide 0.4s ease-out both;
-}
-
-@keyframes alarmSlide {
-  from { opacity: 0; transform: translateX(-12px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-.alarm-level {
-  padding-top: 3px;
-}
-
-.alarm-dot {
-  display: block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.level-warning .alarm-dot { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); }
-.level-error .alarm-dot { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); animation: alarmPulse 1.5s ease-in-out infinite; will-change: opacity; }
-.level-info .alarm-dot { background: #3b82f6; box-shadow: 0 0 6px rgba(59, 130, 246, 0.5); }
-
-.alarm-content {
-  @apply flex flex-col flex-1 min-w-0;
-}
-
-.alarm-msg {
-  font-size: 11px;
-  color: rgba(200, 218, 255, 0.8);
-  line-height: 1.3;
-}
-
-.alarm-time {
-  font-size: 9px;
-  font-family: monospace;
-  margin-top: 1px;
-  color: rgba(148, 184, 255, 0.35);
-}
-
-.alarm-device {
-  font-size: 9px;
-  font-family: monospace;
-  flex-shrink: 0;
-  margin-left: 6px;
+.placeholder-text {
+  @apply flex-1 flex items-center justify-center;
+  font-size: 13px;
+  letter-spacing: 0.2em;
   color: rgba(148, 184, 255, 0.3);
+}
+
+/* ========== 工序设备展示 ========== */
+.processes-wrap {
+  @apply flex-1 flex flex-col min-h-0;
+}
+
+.processes-title {
+  @apply shrink-0 mb-2;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(200, 218, 255, 0.9);
+}
+
+.devices-grid {
+  @apply flex-1 overflow-y-auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+}
+
+.devices-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.devices-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.devices-grid::-webkit-scrollbar-thumb {
+  background-color: rgba(59, 130, 246, 0.3);
+  border-radius: 20px;
+}
+
+.device-tile {
+  @apply flex flex-col items-center gap-1 rounded-lg px-2 py-2;
+  width: 84px;
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+}
+
+.device-tile-icon {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.device-tile-name {
+  @apply text-center truncate;
+  width: 100%;
+  font-size: 10px;
+  color: rgba(200, 218, 255, 0.85);
 }
 
 /* ========== 底部 ========== */

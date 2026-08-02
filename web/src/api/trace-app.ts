@@ -28,4 +28,9 @@ export default {
   // 智能看板配置
   getDashboardConfig: () => _get('api/trace_app/dashboard/config'),
   saveDashboardConfig: (title: string) => _post('api/trace_app/dashboard/config', { title }),
+
+  // 生产基础配置
+  queryRoutingList: () => _post('api/trace_app/base_config/routing_list'),
+  queryRoutingProcesses: (routingCode: string) =>
+    _post('api/trace_app/base_config/routing_processes', { routing_code: routingCode }),
 }

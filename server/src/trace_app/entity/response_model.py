@@ -195,3 +195,53 @@ class DeviceDataItem(TypedDict):
 
 class DeviceDataQueryResponse(BaseResponse):
     data: PageItem  # 分页数据（包含 total, page, page_size, list）
+
+
+# ==================== 生产基础配置查询 ====================
+
+class RoutingItem(TypedDict):
+    """工艺路线"""
+    routing_code: str  # 工艺路线编码
+    routing_name: str  # 工艺路线名称
+    routing_type: str  # 工艺路线类型
+    workshop_code: str  # 车间编码
+    workshop_name: str  # 车间名称
+
+
+class RoutingListResponse(BaseResponse):
+    data: List[RoutingItem]  # 工艺路线列表
+
+
+class RoutingProcessRequest(TypedDict):
+    """工艺路线工序查询请求参数"""
+    routing_code: str  # 工艺路线编码
+
+
+class RoutingProcessDeviceItem(TypedDict):
+    """生产单元对应的设备"""
+    device_code: str  # 设备编码
+    device_name: str  # 设备名称
+    device_type: str  # 设备类型（检测/非检测）
+
+
+class RoutingProcessItem(TypedDict):
+    """工艺路线中的工序"""
+    process_code: str  # 工序编码
+    process_name: str  # 工序名称
+    process_order: int  # 工序顺序
+    work_center_code: str  # 工作中心编码
+    work_center_name: str  # 工作中心名称
+    produce_unit_code: str  # 生产单元编码
+    produce_unit_name: str  # 生产单元名称
+    devices: List[RoutingProcessDeviceItem]  # 生产单元对应的设备列表
+
+
+class RoutingProcessResult(TypedDict):
+    """工艺路线工序查询结果"""
+    routing_code: str  # 工艺路线编码
+    routing_name: str  # 工艺路线名称
+    processes: List[RoutingProcessItem]  # 工序列表（按工序顺序排序）
+
+
+class RoutingProcessResponse(BaseResponse):
+    data: RoutingProcessResult  # 工艺路线工序查询结果

@@ -18,6 +18,17 @@ async def get_process_coll():
     return await get_collection_handler("production_config_mgm_process_info", _get_db_name("config"))
 
 
+async def get_routing_process_info_coll():
+    """获取工艺路线明细表（production_config_mgm_routing_process_info）集合句柄"""
+    return await get_collection_handler("production_config_mgm_routing_process_info", _get_db_name("config"))
+
+
+async def get_web_layout_application_coll():
+    """获取 Web 布局应用配置表（web_layout_application）集合句柄"""
+    idi_db = f"idi_{get_organization()}"
+    return await get_collection_handler("web_layout_application", idi_db)
+
+
 async def get_device_coll():
     """获取设备配置表（device）集合句柄"""
     idi_db = f"idi_{get_organization()}_cloud_management"
