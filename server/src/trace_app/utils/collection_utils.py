@@ -56,6 +56,12 @@ async def get_datas_coll():
     return await get_collection_handler("datas", idi_db)
 
 
+async def get_device_exception_status_interval_coll():
+    """获取设备状态时间片表（device_exception_status_interval）集合句柄"""
+    idi_db = f"idi_{get_organization()}"
+    return await get_collection_handler("device_exception_status_interval", idi_db)
+
+
 def calc_check_result(raw_check, prod_model):
     """根据原始检测结果和生产模式计算显示用检测结果
 

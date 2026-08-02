@@ -1,1 +1,2 @@
+from trace_app.handlers.websocket_handler.data_providers.device_status_provider import DeviceStatusProvider
 from trace_app.handlers.websocket_handler.data_providers.oee_provider import OeeProvider

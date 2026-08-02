@@ -1,8 +1,10 @@
 from mg_app_framework import get_logger, rabbitmq_publish_one
 
+from trace_app.service.device_status_service import update_device_status
+
 subscribe_key_and_process_func = {
-    # 在此处注册 MQ 订阅 key 与处理函数的映射
-    # "key_name": process_func
+    # 设备实时状态（device_exception_compute 推送，value 为状态码）
+    "time_interval_status": update_device_status,
 }
 
 

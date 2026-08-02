@@ -205,6 +205,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import api from '../../api/trace-app'
 import { useDashboardWebSocket } from '../../composables/useDashboardWebSocket'
+import { useDeviceStatus, STATUS_NAMES } from '../../composables/useDeviceStatus'
 import DarkSelect from '../../components/DarkSelect.vue'
 import DashboardClock from './DashboardClock.vue'
 import deviceDetectOff from '../../assets/device_status/检测(关机).png'
@@ -222,6 +223,9 @@ const pageTitle = ref('智能生产看板')
 
 // ========== WebSocket OEE 数据 ==========
 const { oeeData, connected, connect, disconnect, setQueryDate } = useDashboardWebSocket()
+
+// ========== WebSocket 设备状态 ==========
+const { connect: connectDeviceStatus, disconnect: disconnectDeviceStatus, statusOf } = useDeviceStatus()
 
 // ========== 日期选择 ==========
 const showFilter = ref(false)
@@ -312,12 +316,12 @@ watch(selectedRouting, () => {
   loadRoutingProcesses()
 })
 
-// 按工序顺序拍平所有设备，横向排列自动换行；状态默认关机，后续按其他方式赋值
+// 按工序顺序拍平所有设备，横向排列自动换行；状态取自 WebSocket 推送的实时状态，取不到默认关机
 const allDevices = computed(() => {
   const result: { device_code: string, device_name: string, device_type: string, status: string, process_name: string }[] = []
   for (const p of routingProcesses.value) {
     for (const dev of p.devices) {
-      result.push({ ...dev, status: dev.status || '关机', process_name: p.process_name })
+      result.push({ ...dev, status: STATUS_NAMES[statusOf(dev.device_code)] || '关机', process_name: p.process_name })
     }
   }
   return result
@@ -325,6 +329,7 @@ const allDevices = computed(() => {
 
 onMounted(async () => {
   connect()
+  connectDeviceStatus()
   loadRoutingList()
   try {
     const res = await api.getDashboardConfig()
@@ -338,6 +343,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   disconnect()
+  disconnectDeviceStatus()
 })
 
 // ========== OEE 子指标 ==========

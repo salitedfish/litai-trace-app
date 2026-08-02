@@ -84,6 +84,7 @@ The app uses `mg_app_framework` — a Tornado-based microservice framework with 
 - `subscribe_key_and_process_func` dict maps MQ routing keys to async handler functions
 - `process_mq_msg` dispatches incoming messages to the registered handler
 - `send_rabbit_mq(data, key)` publishes messages
+- `time_interval_status` is subscribed for real-time device status (pushed by `device_exception_compute`, value is a status code). `service/device_status_service.py` keeps an in-memory `{device_code: status_code}` map (4/5/6 → 2; only 0 off / 1 running / 2 standby / 3 fault), pre-filled from the `device_exception_status_interval` collection at startup (`my_init_func`), and pushed to clients over WebSocket `/ws/device_status` (5s snapshot) via `DeviceStatusProvider`.
 
 **Utils**:
 - `utils.py` — QR code generation (qrcode + reportlab), serial ID generation (MES+YYMMDD+NNNNNNN) using MongoDB atomic counters

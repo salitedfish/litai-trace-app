@@ -1,11 +1,14 @@
 from mg_app_framework import InitFuncBasic
 
+from trace_app.service.device_status_service import load_initial_device_status
 from trace_app.utils.db import get_db_handler, db_index_map
 
 
 class MyInitFunc(InitFuncBasic):
     async def init_func(self):
         await add_indexes()
+        # 预填设备实时状态，避免重启后看板设备状态全空
+        await load_initial_device_status()
 
 
 async def add_indexes():
