@@ -87,29 +87,41 @@ async def _calc_quality_rate(time_start, time_end):
 
 
 async def calculate_oee(start_time=None, end_time=None):
-    """计算产线 OEE 及三个子指标"""
+    """计算产线 OEE 及三个子指标
+
+    OEE = 时间开动率 × 性能开动率 × 合格率
+    """
     now = datetime.datetime.now()
     if start_time is None:
+        # 默认统计区间：当天 0 点起
         start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
     if end_time is None:
+        # 默认统计区间：到当天 23:59:59 止
         end_time = now.replace(hour=23, minute=59, second=59, microsecond=0)
 
+    # 参与统计的设备列表（当前为全部 type=device 的数采设备，未按产线过滤）
     devices = await _get_workshop_device_codes()
 
-    # OEE、时间开动率、性能开动率 ← datas
+    # ---- 以下 KPI 均从 datas 表聚合（按「设备码~KPI码」求和，单位：数量/小时） ----
+    # 总产量：全部设备「日累计产量」zb_r_cl 之和，单位：件
     total_pcl = await _get_total_kpi(devices, KPI_DAILY_OUTPUT, start_time, end_time)
+    # 总加工时间：全部设备「日加工时间」zb_r_sbjgsj 之和，单位：小时
     total_jgsj = await _get_total_kpi(devices, KPI_PROCESS_TIME, start_time, end_time)
+    # 总关机时间：全部设备「日关机时间」zb_r_sbgjsj 之和，单位：小时（含关机/急停/调试）
     total_gjsj = await _get_total_kpi(devices, KPI_SHUTDOWN_TIME, start_time, end_time)
+    # 总中断时间：全部设备「设备中断时间」zb_r_sbzdsj 之和，单位：小时（仅超中断阈值的部分，不含速度损失）
     total_zdsj = await _get_total_kpi(devices, KPI_INTERRUPTION, start_time, end_time)
+    # 总上班时间：全部设备「日上班时间」zb_r_sbsbsj 之和，单位：小时（即计划工时）
     total_sbsj = await _get_total_kpi(devices, KPI_WORK_TIME, start_time, end_time)
 
-    # 合格率 ← work_order_retrospect_records
+    # 合格率：从报工记录表 work_order_retrospect_records 统计
+    #   = 合格产出记录数 / 全部产出记录数（op_type=out，check_result 为空视为合格）
     hgl = await _calc_quality_rate(start_time, end_time)
 
-    # 合格率 — 始终计算
+    # 合格率展示值：转成百分数（乘 100 保留 2 位），无数据时为 '-'
     hgl_display = round(hgl * 100, 2) if isinstance(hgl, float) else '-'
 
-    # OEE / 时间开动率 / 性能开动率：没有 KPI 时间数据就返回空
+    # 上班时间、产量都没有数据 → 时间/性能开动率无意义，直接返回空值（合格率仍展示）
     if not total_sbsj and not total_pcl:
         return [
             {"name": "目标值", "value": 99},
@@ -119,16 +131,21 @@ async def calculate_oee(start_time=None, end_time=None):
             {"name": "合格率", "value": hgl_display},
         ]
 
-    total_sbgzsj = total_sbsj - total_gjsj - total_zdsj  # 实际工作时间
+    # 实际工作时间（设备真正在运转的时长）= 上班时间 - 关机时间 - 中断时间，单位：小时
+    total_sbgzsj = total_sbsj - total_gjsj - total_zdsj
+    # 兜底：避免除数为 0
     if not total_sbgzsj:
         total_sbgzsj = 1
     if not total_sbsj:
         total_sbsj = 1
 
-    sjjdl = total_sbgzsj / total_sbsj  # 时间开动率
-    xnjdl = total_jgsj / total_sbgzsj  # 性能开动率
+    # 时间开动率 = 实际工作时间 / 上班时间（反映计划工时内设备真正开动的比例）
+    sjjdl = total_sbgzsj / total_sbsj
+    # 性能开动率 = 加工时间 / 实际工作时间（反映扣除停机后，实际产出相对理论产能的比例，含速度损失）
+    xnjdl = total_jgsj / total_sbgzsj
 
-    # OEE（三个子指标都必须有值才能算）
+    # OEE = 时间开动率 × 性能开动率 × 合格率（乘 100 转百分数，保留 1 位）
+    # 合格率非数值（'-'）时 OEE 也为 '-'（三个子指标缺一不可）
     oee_val = round(sjjdl * xnjdl * hgl * 100, 1) if isinstance(hgl, float) else '-'
 
     return [
