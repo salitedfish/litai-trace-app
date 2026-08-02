@@ -105,6 +105,7 @@ The app uses `mg_app_framework` — a Tornado-based microservice framework with 
 - `App.vue` — Root layout with sidebar nav + main content area. Sidebar toggles `currentView` ref
 - `views/HomeView.vue` — Dashboard showing service status and API endpoint list
 - `views/HistoryView.vue` — 历史记录页面（开发中）
+- `views/dashboard/` — 智能生产看板；`DashboardView.vue` 只做布局 + 状态管理（WebSocket 连接、产线/日期选择），各卡片拆在 `views/dashboard/components/`：`HeaderBar`（顶栏）、`OeeCard`（OEE 仪表盘）、`DeviceStatusCard`（产线设备实时状态）、`ProductionTrendCard`（近7日产量）、`FilterModal`（操作弹窗）
 - `composables/useServiceStatus.ts` — 共享服务状态 composable，模块级单例，自动检测后端健康状态
 - `api/trace-app.ts` — API methods using `_get`/`_post` from `httpWrap.ts`
 - `api/httpWrap.ts` — Axios instance with login redirect interceptor, base URL auto-detection (dev vs deployment), 定义了 `ApiResponse<T>` 统一响应类型

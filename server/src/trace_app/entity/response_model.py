@@ -245,3 +245,36 @@ class RoutingProcessResult(TypedDict):
 
 class RoutingProcessResponse(BaseResponse):
     data: RoutingProcessResult  # 工艺路线工序查询结果
+
+
+class LineItem(TypedDict):
+    """产线（车间）"""
+    workshop_code: str  # 产线编码（车间代号）
+    workshop_name: str  # 产线名称（车间名称）
+
+
+class LineListResponse(BaseResponse):
+    data: List[LineItem]  # 产线列表
+
+
+class LineDevicesRequest(TypedDict):
+    """产线设备查询请求参数"""
+    workshop_code: str  # 产线编码（车间代号）
+
+
+class LineUnitItem(TypedDict):
+    """产线下的生产单元"""
+    produce_unit_code: str  # 生产单元编码
+    produce_unit_name: str  # 生产单元名称
+    devices: List[RoutingProcessDeviceItem]  # 生产单元对应的设备列表
+
+
+class LineDevicesResult(TypedDict):
+    """产线设备查询结果"""
+    workshop_code: str  # 产线编码
+    workshop_name: str  # 产线名称
+    units: List[LineUnitItem]  # 生产单元列表（按生产单元分组）
+
+
+class LineDevicesResponse(BaseResponse):
+    data: LineDevicesResult  # 产线设备查询结果

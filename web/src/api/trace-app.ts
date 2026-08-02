@@ -33,4 +33,7 @@ export default {
   queryRoutingList: () => _post('api/trace_app/base_config/routing_list'),
   queryRoutingProcesses: (routingCode: string) =>
     _post('api/trace_app/base_config/routing_processes', { routing_code: routingCode }),
+  queryLineList: () => _post('api/trace_app/base_config/line_list'),
+  queryLineDevices: (workshopCode: string) =>
+    _post('api/trace_app/base_config/line_devices', { workshop_code: workshopCode }),
 }

@@ -6,6 +6,9 @@ from tornado_request_mapping import request_mapping
 from trace_app.common.base_handler import BaseHandler
 from trace_app.entity.response_entity import Response
 from trace_app.entity.response_model import (
+    LineDevicesRequest,
+    LineDevicesResponse,
+    LineListResponse,
     RoutingListResponse,
     RoutingProcessRequest,
     RoutingProcessResponse,
@@ -180,6 +183,115 @@ class BaseConfigHandler(BaseHandler):
                 "routing_code": routing_code,
                 "routing_name": routing_name,
                 "processes": processes,
+            }, "查询成功"))
+
+        except Exception:
+            get_logger().error(traceback.format_exc())
+            self.send_response(Response.fail("查询失败，服务器内部错误"))
+
+    # =====================================================================
+    # 产线列表查询（车间 = 产线）
+    # 布局表(web_layout_application) 按车间代号去重
+    # =====================================================================
+
+    @request_mapping('/line_list', method='post', description='获取产线列表')
+    @swagger_doc(
+        tags=["生产基础配置"],
+        summary="获取产线列表",
+        description="从布局表按车间代号（产线）去重，返回产线编码及名称",
+        response_model=LineListResponse,
+    )
+    @loginrequired
+    async def query_line_list(self):
+        """查询产线列表（车间=产线），用于前端下拉选择"""
+        try:
+            layout_coll = await get_web_layout_application_coll()
+            pipeline = [
+                {"$group": {
+                    "_id": "$车间代号",
+                    "车间名称": {"$first": "$车间名称"},
+                }},
+                {"$sort": {"_id": 1}},
+            ]
+            result = []
+            async for r in layout_coll.aggregate(pipeline):
+                workshop_code = r.get("_id", "")
+                if not workshop_code:
+                    continue
+                result.append({
+                    "workshop_code": workshop_code,
+                    "workshop_name": r.get("车间名称", ""),
+                })
+
+            self.send_response(Response.success(result, "查询成功"))
+
+        except Exception:
+            get_logger().error(traceback.format_exc())
+            self.send_response(Response.fail("查询失败，服务器内部错误"))
+
+    # =====================================================================
+    # 产线设备查询
+    # 布局表(web_layout_application) 按车间代号筛选，按生产单元分组返回设备
+    # =====================================================================
+
+    @request_mapping('/line_devices', method='post', description='获取产线下生产单元及设备')
+    @swagger_doc(
+        tags=["生产基础配置"],
+        summary="获取产线下生产单元及设备",
+        description="按车间代号（产线）查询布局表，按生产单元分组返回设备列表",
+        request_model=LineDevicesRequest,
+        response_model=LineDevicesResponse,
+    )
+    @loginrequired
+    async def query_line_devices(self):
+        """查询产线下的生产单元及设备，用于看板展示"""
+        try:
+            if not self.data or not self.data.get("workshop_code"):
+                self.send_response(Response.fail("请传入产线编码 workshop_code"))
+                return
+
+            workshop_code = self.data["workshop_code"].strip()
+            if not workshop_code:
+                self.send_response(Response.fail("产线编码不能为空"))
+                return
+
+            layout_coll = await get_web_layout_application_coll()
+            cursor = layout_coll.find(
+                {"车间代号": workshop_code},
+                projection={"车间名称": 1, "生产单元代号": 1, "生产单元名称": 1,
+                            "设备编码": 1, "设备名称": 1, "设备类型": 1}
+            ).sort("设备顺序", 1)
+
+            workshop_name = ""
+            unit_map = {}
+            async for rec in cursor:
+                if not workshop_name:
+                    workshop_name = rec.get("车间名称", "")
+                unit_code = rec.get("生产单元代号", "")
+                if not unit_code:
+                    continue
+                entry = unit_map.get(unit_code)
+                if entry is None:
+                    entry = {
+                        "produce_unit_code": unit_code,
+                        "produce_unit_name": rec.get("生产单元名称", ""),
+                        "devices": [],
+                    }
+                    unit_map[unit_code] = entry
+                elif not entry["produce_unit_name"]:
+                    entry["produce_unit_name"] = rec.get("生产单元名称", "")
+                device_code = rec.get("设备编码", "")
+                if device_code:
+                    entry["devices"].append({
+                        "device_code": device_code,
+                        "device_name": rec.get("设备名称", ""),
+                        "device_type": rec.get("设备类型", ""),
+                    })
+
+            self.send_response(Response.success({
+                "workshop_code": workshop_code,
+                "workshop_name": workshop_name,
+                "units": list(unit_map.values()),
             }, "查询成功"))
 
         except Exception:
