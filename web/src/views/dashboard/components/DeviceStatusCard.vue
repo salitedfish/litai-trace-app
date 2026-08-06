@@ -1,26 +1,51 @@
 <template>
-  <div class="chart-card chart-card-placeholder">
-    <div class="chart-header">
-      <h3 class="chart-title">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <div class="tech-panel dev-panel">
+    <div class="tech-panel-header">
+      <h3 class="tech-panel-title">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
         产线设备
+        <span v-if="title" class="line-name">{{ title }}</span>
       </h3>
-      <span class="chart-badge" :class="{ 'text-green-400': connected }">
+      <span class="tech-badge" :class="connected ? 'live' : 'offline'">
+        <span class="tech-dot"></span>
         {{ connected ? '实时' : '断开' }}
       </span>
     </div>
-    <div v-if="!selected" class="placeholder-text">请选择产线</div>
-    <div v-else-if="loading" class="placeholder-text">加载中...</div>
-    <div v-else-if="error" class="placeholder-text">{{ error }}</div>
-    <div v-else-if="units.length == 0" class="placeholder-text">该产线暂无设备数据</div>
+
+    <!-- 状态图例 -->
+    <div v-if="hasDevices" class="status-legend">
+      <span v-for="s in legendItems" :key="s.name" class="legend-item">
+        <i class="legend-dot" :style="{ background: s.color, boxShadow: `0 0 5px ${s.color}` }"></i>
+        {{ s.name }}
+      </span>
+    </div>
+
+    <div v-if="!selected" class="tech-placeholder">请选择产线</div>
+    <div v-else-if="loading" class="tech-placeholder">
+      <span class="placeholder-blink">▮</span>&nbsp;加载中...
+    </div>
+    <div v-else-if="error" class="tech-placeholder">{{ error }}</div>
+    <div v-else-if="units.length == 0" class="tech-placeholder">该产线暂无设备数据</div>
     <div v-else class="processes-wrap">
-      <div class="processes-title">{{ title }}</div>
-      <div class="devices-grid">
-        <div v-for="dev in allDevices" :key="dev.device_code" class="device-tile" :title="dev.unit_name + ' · ' + dev.device_code">
-          <img :src="deviceIcon(dev.device_type, dev.status)" class="device-tile-icon" />
-          <span class="device-tile-name">{{ dev.device_name }}</span>
+      <div v-for="group in groupedDevices" :key="group.code" class="unit-group">
+        <div class="unit-name">
+          <span class="unit-name-bar"></span>
+          {{ group.name }}
+          <span class="unit-name-count">{{ group.devices.length }} DEV</span>
+        </div>
+        <div class="devices-grid">
+          <div
+            v-for="dev in group.devices"
+            :key="dev.device_code"
+            class="device-tile"
+            :style="tileStyle(dev.status)"
+            :title="group.name + ' · ' + dev.device_code"
+          >
+            <img :src="deviceIcon(dev.device_type, dev.status)" class="device-tile-icon" />
+            <span class="device-tile-name">{{ dev.device_name }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -109,66 +134,114 @@ const deviceIcon = (deviceType: string, status: string) => {
   return detect ? deviceDetectOff : deviceNonDetectOff
 }
 
-// 按生产单元拍平所有设备，横向排列自动换行；状态取自 WebSocket 推送的实时状态，取不到默认关机
-const allDevices = computed(() => {
-  const result: { device_code: string, device_name: string, device_type: string, status: string, unit_name: string }[] = []
+// 状态 → 主题色（光晕 / 顶线 / 角点）
+const STATUS_COLORS: Record<string, string> = {
+  运行: '#34d399',
+  待机: '#fbbf24',
+  故障: '#f87171',
+  关机: '#5b6b8c',
+}
+
+const legendItems = ['运行', '待机', '故障', '关机'].map(name => ({ name, color: STATUS_COLORS[name] }))
+
+const hasDevices = computed(() => units.value.some(u => u.devices.length > 0))
+
+// 按生产单元分组拍平，状态取自 WebSocket 实时推送，取不到默认关机
+const groupedDevices = computed(() => {
+  const result: { code: string, name: string, devices: { device_code: string, device_name: string, device_type: string, status: string }[] }[] = []
   for (const u of units.value) {
-    for (const dev of u.devices) {
+    const devices = u.devices.map(dev => {
       const statusCode = deviceStatus.value[dev.device_code] || 0
-      result.push({ ...dev, status: STATUS_NAMES[statusCode] || '关机', unit_name: u.produce_unit_name })
+      return { ...dev, status: STATUS_NAMES[statusCode] || '关机' }
+    })
+    if (devices.length > 0) {
+      result.push({ code: u.produce_unit_code, name: u.produce_unit_name, devices })
     }
   }
   return result
 })
+
+// 设备磁贴行内样式（状态主题色 + 光晕透明度）
+const tileStyle = (status: string) => {
+  const color = STATUS_COLORS[status] || STATUS_COLORS['关机']
+  const rgb = hexToRgb(color)
+  return {
+    '--st-color': color,
+    '--st-alpha': `rgba(${rgb}, 0.22)`,
+    '--st-alpha2': `rgba(${rgb}, 0.5)`,
+  }
+}
+
+function hexToRgb(hex: string): string {
+  const v = parseInt(hex.slice(1), 16)
+  return `${(v >> 16) & 255}, ${(v >> 8) & 255}, ${v & 255}`
+}
 </script>
 
 <style scoped>
-.chart-card {
-  @apply rounded-xl p-4 flex flex-col;
-  background: linear-gradient(135deg, rgba(30, 58, 95, 0.4), rgba(15, 31, 61, 0.2));
-  border: 1px solid rgba(59, 130, 246, 0.12);
+.dev-panel {
+  @apply p-4 flex flex-col;
   min-height: 0;
 }
 
-.chart-card-placeholder {
-  border-style: dashed;
-  border-color: rgba(59, 130, 246, 0.15);
-}
-
-.chart-header {
-  @apply flex items-center justify-between shrink-0;
+/* ========== 状态图例 ========== */
+.status-legend {
+  display: flex;
+  gap: 14px;
+  flex-shrink: 0;
   margin-bottom: 8px;
+  padding-left: 2px;
 }
 
-.chart-title {
-  @apply flex items-center gap-2 text-sm font-semibold;
-  color: rgba(200, 218, 255, 0.9);
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(148, 184, 255, 0.6);
 }
 
-.chart-badge {
-  @apply text-xs px-2 py-0.5 rounded-full font-medium;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  color: #34d399;
+.legend-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
 }
 
-.placeholder-text {
-  @apply flex-1 flex items-center justify-center;
-  font-size: 13px;
-  letter-spacing: 0.2em;
-  color: rgba(148, 184, 255, 0.3);
-}
-
-/* ========== 产线设备展示 ========== */
+/* ========== 生产单元分组 ========== */
 .processes-wrap {
   @apply flex-1 flex flex-col min-h-0;
+  gap: 8px;
 }
 
-.processes-title {
-  @apply shrink-0 mb-2;
-  font-size: 13px;
+.unit-group {
+  @apply flex flex-col min-h-0;
+}
+
+.unit-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  font-size: 11px;
   font-weight: 600;
-  color: rgba(200, 218, 255, 0.9);
+  letter-spacing: 0.14em;
+  color: rgba(200, 218, 255, 0.75);
+  margin-bottom: 4px;
+}
+
+.unit-name-bar {
+  width: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, #38bdf8, transparent);
+}
+
+.unit-name-count {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: rgba(148, 184, 255, 0.4);
 }
 
 .devices-grid {
@@ -177,6 +250,7 @@ const allDevices = computed(() => {
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 8px;
+  padding-bottom: 2px;
 }
 
 .devices-grid::-webkit-scrollbar {
@@ -188,21 +262,63 @@ const allDevices = computed(() => {
 }
 
 .devices-grid::-webkit-scrollbar-thumb {
-  background-color: rgba(59, 130, 246, 0.3);
+  background-color: rgba(56, 189, 248, 0.3);
   border-radius: 20px;
 }
 
+/* ========== 设备磁贴 ========== */
 .device-tile {
-  @apply flex flex-col items-center gap-1 rounded-lg px-2 py-2;
+  position: relative;
+  @apply flex flex-col items-center gap-1 rounded-md px-2 py-2;
   width: 84px;
-  background: rgba(59, 130, 246, 0.06);
-  border: 1px solid rgba(59, 130, 246, 0.12);
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.07), rgba(56, 189, 248, 0.02));
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  transition: all 0.25s ease;
+  cursor: default;
+}
+
+/* 状态顶线 */
+.device-tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--st-color);
+  box-shadow: 0 0 8px var(--st-color);
+  opacity: 0.85;
+}
+
+/* 状态角点 */
+.device-tile::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--st-color);
+  box-shadow: 0 0 5px var(--st-color);
+}
+
+.device-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--st-color);
+  box-shadow: 0 0 14px var(--st-alpha), inset 0 0 12px var(--st-alpha);
 }
 
 .device-tile-icon {
   width: 44px;
   height: 44px;
   object-fit: contain;
+  filter: drop-shadow(0 0 6px var(--st-alpha2));
+  transition: filter 0.25s ease;
+}
+
+.device-tile:hover .device-tile-icon {
+  filter: drop-shadow(0 0 10px var(--st-alpha2));
 }
 
 .device-tile-name {
@@ -210,5 +326,10 @@ const allDevices = computed(() => {
   width: 100%;
   font-size: 10px;
   color: rgba(200, 218, 255, 0.85);
+}
+
+.placeholder-blink {
+  color: #38bdf8;
+  animation: techPulse 1.2s ease-in-out infinite;
 }
 </style>

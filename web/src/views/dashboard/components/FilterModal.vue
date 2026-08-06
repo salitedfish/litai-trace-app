@@ -2,7 +2,10 @@
   <div v-if="show" class="filter-overlay" @click.self="emit('close')">
     <div class="filter-modal">
       <div class="filter-modal-header">
-        <span class="filter-modal-title">更多操作</span>
+        <span class="filter-modal-title">
+          <i class="filter-title-bar"></i>
+          更多操作
+        </span>
         <button class="filter-modal-close" @click="emit('close')">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -99,23 +102,44 @@ function onEndDateChange(event: Event) {
 }
 
 .filter-modal {
-  @apply rounded-xl;
+  @apply rounded-md;
+  position: relative;
   width: 320px;
-  background: linear-gradient(135deg, #1a2d4a, #0f1f3d);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  background:
+    linear-gradient(rgba(56, 189, 248, 0.5), rgba(56, 189, 248, 0.5)) left 8px top 8px / 18px 1px no-repeat,
+    linear-gradient(rgba(56, 189, 248, 0.5), rgba(56, 189, 248, 0.5)) left 8px top 8px / 1px 18px no-repeat,
+    linear-gradient(rgba(56, 189, 248, 0.5), rgba(56, 189, 248, 0.5)) right 8px top 8px / 18px 1px no-repeat,
+    linear-gradient(rgba(56, 189, 248, 0.5), rgba(56, 189, 248, 0.5)) right 8px top 8px / 1px 18px no-repeat,
+    linear-gradient(rgba(56, 189, 248, 0.5), rgba(56, 189, 248, 0.5)) left 8px bottom 8px / 18px 1px no-repeat,
+    linear-gradient(rgba(56, 189, 248, 0.5), rgba(56, 189, 248, 0.5)) left 8px bottom 8px / 1px 18px no-repeat,
+    linear-gradient(rgba(56, 189, 248, 0.5), rgba(56, 189, 248, 0.5)) right 8px bottom 8px / 18px 1px no-repeat,
+    linear-gradient(rgba(56, 189, 248, 0.5), rgba(56, 189, 248, 0.5)) right 8px bottom 8px / 1px 18px no-repeat,
+    linear-gradient(160deg, rgba(13, 32, 71, 0.92), rgba(6, 17, 40, 0.96)) center / 100% 100% no-repeat;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(37, 99, 235, 0.08);
 }
 
 .filter-modal-header {
   @apply flex items-center justify-between;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.14);
 }
 
 .filter-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #f0f4ff;
+  letter-spacing: 0.14em;
+  color: #dbeafe;
+}
+
+.filter-title-bar {
+  width: 4px;
+  height: 14px;
+  background: linear-gradient(180deg, #38bdf8, #2563eb);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
 }
 
 .filter-modal-close {
@@ -160,7 +184,8 @@ function onEndDateChange(event: Event) {
 }
 
 .filter-input:focus {
-  border-color: rgba(59, 130, 246, 0.4);
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
 }
 
 .filter-input::-webkit-calendar-picker-indicator {
@@ -175,18 +200,21 @@ function onEndDateChange(event: Event) {
 }
 
 .filter-btn-primary {
-  padding: 6px 20px;
-  border-radius: 6px;
+  padding: 6px 22px;
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 500;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  letter-spacing: 0.1em;
+  background: linear-gradient(135deg, #38bdf8, #2563eb);
   color: #fff;
-  border: none;
+  border: 1px solid rgba(125, 211, 252, 0.35);
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
 }
 
 .filter-btn-primary:hover {
-  opacity: 0.9;
+  opacity: 0.92;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.4);
 }
 </style>

@@ -16,5 +16,6 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"],
+  "exclude": ["src/assets/statics"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
