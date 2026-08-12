@@ -148,6 +148,9 @@ class ProcessParamResponse(BaseResponse):
 class DashboardConfigRequest(TypedDict):
     """看板配置请求参数"""
     title: str  # 看板标题
+    start_date: str  # 开始日期（YYYY-MM-DD，可选，空为当天）
+    end_date: str  # 结束日期（YYYY-MM-DD，可选，空为当天）
+    workshop_code: str  # 产线编码（可选，空为默认第一条产线）
 
 
 class DashboardConfigResponse(BaseResponse):

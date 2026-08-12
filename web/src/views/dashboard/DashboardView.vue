@@ -17,20 +17,25 @@
     </div>
 
     <!-- 顶栏 -->
-    <HeaderBar :title="pageTitle" @open-filter="showFilter = true" @exit="emit('exit')" />
+    <HeaderBar :title="pageTitle" @exit="emit('exit')" />
 
     <!-- 主体 -->
     <main class="dashboard-main">
-      <!-- 图表行 1：OEE / 产线设备 / 产量趋势 -->
+      <!-- 图表行 1：OEE / 产线设备 / 计划/实际产量 -->
       <section class="charts-row">
         <OeeCard ref="oeeCardRef" />
         <DeviceStatusCard class="col-span-2" :line-code="selectedLine" />
-        <ProductionTrendCard />
+        <PlanActualOutputCard />
       </section>
 
-      <!-- 图表行 2：全部预留 -->
+      <!-- 图表行 2：工序合格率 / 小时产量统计+历史数据 / 预留 -->
       <section class="charts-row">
-        <div class="tech-panel chart-card-placeholder col-span-4">
+        <ProcessQualifiedRateCard />
+        <div class="col-span-2 stacked-col">
+          <HourlyOutputCard />
+          <HistoryDataCard />
+        </div>
+        <div class="tech-panel chart-card-placeholder">
           <span class="placeholder-text">
             <span class="placeholder-blink">▮</span>
             预留区域
@@ -41,18 +46,6 @@
 
     <!-- 底部数据流装饰线 -->
     <div class="footer-flow"></div>
-
-    <!-- 操作弹窗 -->
-    <FilterModal
-      :show="showFilter"
-      :start-date="startDate"
-      :end-date="endDate"
-      :selected-line="selectedLine"
-      @close="showFilter = false"
-      @start-date-change="onStartDateChange"
-      @end-date-change="onEndDateChange"
-      @line-change="onLineChange"
-    />
   </div>
 </template>
 
@@ -62,16 +55,17 @@ import api from '../../api/trace-app'
 import HeaderBar from './components/HeaderBar.vue'
 import OeeCard from './components/OeeCard.vue'
 import DeviceStatusCard from './components/DeviceStatusCard.vue'
-import ProductionTrendCard from './components/ProductionTrendCard.vue'
-import FilterModal from './components/FilterModal.vue'
+import PlanActualOutputCard from './components/PlanActualOutputCard.vue'
+import ProcessQualifiedRateCard from './components/ProcessQualifiedRateCard.vue'
+import HourlyOutputCard from './components/HourlyOutputCard.vue'
+import HistoryDataCard from './components/HistoryDataCard.vue'
 import './dashboard.theme.css'
 
 const emit = defineEmits<{ (e: 'exit'): void }>()
 
 const pageTitle = ref('智能生产看板')
 
-// ========== 更多操作弹窗（日期 / 产线选择） ==========
-const showFilter = ref(false)
+// ========== 看板参数（日期 / 产线，来自看板配置，加载时一并获取） ==========
 const today = new Date().toISOString().slice(0, 10)
 const startDate = ref(today)
 const endDate = ref(today)
@@ -79,28 +73,31 @@ const selectedLine = ref('')
 
 const oeeCardRef = ref<InstanceType<typeof OeeCard>>()
 
-function onStartDateChange(value: string) {
-  startDate.value = value
-  oeeCardRef.value?.setDate(startDate.value, endDate.value)
-}
-
-function onEndDateChange(value: string) {
-  endDate.value = value
-  oeeCardRef.value?.setDate(startDate.value, endDate.value)
-}
-
-function onLineChange(value: string) {
-  selectedLine.value = value
-}
-
 onMounted(async () => {
+  // 加载看板配置（标题 / 查询日期 / 产线），看板参数一起获取
+  let configTitle = ''
+  let configStartDate = ''
+  let configEndDate = ''
+  let configWorkshopCode = ''
   try {
     const res = await api.getDashboardConfig()
-    if (res.data?.title) {
-      pageTitle.value = res.data.title
-    }
+    const cfg = res.data || {}
+    configTitle = cfg.title || ''
+    configStartDate = cfg.start_date || ''
+    configEndDate = cfg.end_date || ''
+    configWorkshopCode = cfg.workshop_code || ''
   } catch (_) {
-    // 使用默认标题
+    // 使用默认配置
+  }
+
+  if (configTitle) pageTitle.value = configTitle
+  if (configStartDate) startDate.value = configStartDate
+  if (configEndDate) endDate.value = configEndDate
+  if (configWorkshopCode) selectedLine.value = configWorkshopCode
+
+  // 配置了查询日期时，同步给 OEE 查询
+  if (configStartDate || configEndDate) {
+    oeeCardRef.value?.setDate(startDate.value, endDate.value)
   }
 })
 </script>
@@ -227,23 +224,13 @@ onMounted(async () => {
   @apply grid grid-cols-4 gap-3 flex-1 min-h-0;
 }
 
-/* ========== 预留区域 ========== */
-.chart-card-placeholder {
-  border-style: dashed;
-  border-color: rgba(56, 189, 248, 0.18);
+/* ========== 竖排两卡容器 ========== */
+.stacked-col {
+  @apply flex flex-col gap-3 min-h-0;
 }
 
-.placeholder-text {
-  @apply flex-1 flex items-center justify-center;
-  font-size: 13px;
-  letter-spacing: 0.3em;
-  color: rgba(148, 184, 255, 0.3);
-  gap: 6px;
-}
-
-.placeholder-blink {
-  color: #38bdf8;
-  animation: techPulse 1.2s ease-in-out infinite;
+.stacked-col > * {
+  @apply flex-1 min-h-0;
 }
 
 /* ========== 底部数据流装饰线 ========== */

@@ -23,6 +23,32 @@
           <p class="text-xs text-muted-foreground">该标题将显示在智能看板的顶部</p>
         </div>
 
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-foreground">开始日期</label>
+          <input v-model="startDate" type="date"
+            class="w-full max-w-md px-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all" />
+          <p class="text-xs text-muted-foreground">看板 OEE 等统计的起始日期，为空则取当天</p>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-foreground">结束日期</label>
+          <input v-model="endDate" type="date"
+            class="w-full max-w-md px-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all" />
+          <p class="text-xs text-muted-foreground">看板 OEE 等统计的截止日期，为空则取当天</p>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-foreground">产线</label>
+          <select v-model="workshopCode" :disabled="lineLoading"
+            class="w-full max-w-md px-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all disabled:opacity-50">
+            <option value="">请选择产线</option>
+            <option v-for="line in lineList" :key="line.workshop_code" :value="line.workshop_code">
+              {{ line.workshop_name }}
+            </option>
+          </select>
+          <p class="text-xs text-muted-foreground">看板展示的产线，不选则看板不展示产线设备</p>
+        </div>
+
         <div class="flex items-center gap-3 pt-2">
           <button class="px-6 py-2.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center gap-2"
             :disabled="saving || !title.trim()" @click="handleSave">
@@ -46,16 +72,38 @@ import { ref, onMounted } from 'vue'
 import api from '../../api/trace-app'
 
 const title = ref('')
+const startDate = ref('')
+const endDate = ref('')
+const workshopCode = ref('')
+const lineList = ref<{ workshop_code: string, workshop_name: string }[]>([])
+const lineLoading = ref(false)
 const saving = ref(false)
 const saved = ref(false)
+
+const loadLineList = async () => {
+  lineLoading.value = true
+  try {
+    const res = await api.queryLineList()
+    lineList.value = res.data || []
+  } catch (err: any) {
+    console.error('加载产线列表失败:', err)
+  } finally {
+    lineLoading.value = false
+  }
+}
 
 onMounted(async () => {
   try {
     const res = await api.getDashboardConfig()
-    title.value = res.data?.title || ''
+    const cfg = res.data || {}
+    title.value = cfg.title || ''
+    startDate.value = cfg.start_date || ''
+    endDate.value = cfg.end_date || ''
+    workshopCode.value = cfg.workshop_code || ''
   } catch (err: any) {
     console.error('加载看板配置失败:', err)
   }
+  await loadLineList()
 })
 
 const handleSave = async () => {
@@ -63,7 +111,12 @@ const handleSave = async () => {
   saving.value = true
   saved.value = false
   try {
-    await api.saveDashboardConfig(title.value.trim())
+    await api.saveDashboardConfig({
+      title: title.value.trim(),
+      start_date: startDate.value,
+      end_date: endDate.value,
+      workshop_code: workshopCode.value,
+    })
     saved.value = true
     setTimeout(() => { saved.value = false }, 3000)
   } catch (err: any) {

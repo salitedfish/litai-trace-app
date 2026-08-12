@@ -8,18 +8,19 @@
         产线设备
         <span v-if="title" class="line-name">{{ title }}</span>
       </h3>
-      <span class="tech-badge" :class="connected ? 'live' : 'offline'">
-        <span class="tech-dot"></span>
-        {{ connected ? '实时' : '断开' }}
-      </span>
-    </div>
-
-    <!-- 状态图例 -->
-    <div v-if="hasDevices" class="status-legend">
-      <span v-for="s in legendItems" :key="s.name" class="legend-item">
-        <i class="legend-dot" :style="{ background: s.color, boxShadow: `0 0 5px ${s.color}` }"></i>
-        {{ s.name }}
-      </span>
+      <div class="header-right-group">
+        <!-- 状态图例（放在"实时"左侧，同一行） -->
+        <div v-if="hasDevices" class="status-legend">
+          <span v-for="s in legendItems" :key="s.name" class="legend-item">
+            <i class="legend-dot" :style="{ background: s.color, boxShadow: `0 0 5px ${s.color}` }"></i>
+            {{ s.name }}
+          </span>
+        </div>
+        <span class="tech-badge" :class="connected ? 'live' : 'offline'">
+          <span class="tech-dot"></span>
+          {{ connected ? '实时' : '断开' }}
+        </span>
+      </div>
     </div>
 
     <div v-if="!selected" class="tech-placeholder">请选择产线</div>
@@ -175,12 +176,17 @@ function hexToRgb(hex: string): string {
 }
 
 /* ========== 状态图例 ========== */
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .status-legend {
   display: flex;
-  gap: 14px;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
-  margin-bottom: 8px;
-  padding-left: 2px;
 }
 
 .legend-item {

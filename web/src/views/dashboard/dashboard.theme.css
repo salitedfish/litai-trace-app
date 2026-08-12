@@ -1,6 +1,6 @@
 /* ==========================================================================
    智能生产看板 —— 科技主题共享样式（全局，由 DashboardView.vue 引入）
-   供看板内各组件（HeaderBar / OeeCard / DeviceStatusCard / ProductionTrendCard）共用
+   供看板内各组件（HeaderBar / OeeCard / DeviceStatusCard / PlanActualOutputCard / ProcessQualifiedRateCard）共用
    ========================================================================== */
 
 /* ---------- 通用面板：深色渐变 + 发光边框 + 四角科技括号（独立伪元素，呼吸动画） ---------- */
@@ -167,6 +167,28 @@
   font-size: 12px;
   letter-spacing: 0.3em;
   color: rgba(148, 184, 255, 0.28);
+}
+
+/* ---------- 预留占位卡片 ---------- */
+.chart-card-placeholder {
+  border-style: dashed;
+  border-color: rgba(56, 189, 248, 0.18);
+}
+
+.placeholder-text {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  color: rgba(148, 184, 255, 0.3);
+  gap: 6px;
+}
+
+.placeholder-blink {
+  color: #38bdf8;
+  animation: techPulse 1.2s ease-in-out infinite;
 }
 
 /* ---------- 动画 ---------- */

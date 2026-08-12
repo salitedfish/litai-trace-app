@@ -51,26 +51,44 @@ class DashboardHandler(BaseHandler):
     @loginrequired
     async def save_config(self):
         try:
-            title = (self.data or {}).get('title', '').strip()
+            data = self.data or {}
+            title = str(data.get('title') or '').strip()
             if not title:
                 self.send_response(Response.fail("看板标题不能为空"))
                 return
+
+            start_date = str(data.get('start_date') or '').strip()
+            end_date = str(data.get('end_date') or '').strip()
+            workshop_code = str(data.get('workshop_code') or '').strip()
 
             coll = await get_collection_handler(COLLECTION_NAME)
             doc = await coll.find_one({}, {'_id': 1})
             now = datetime.now().isoformat()
 
+            # 空值表示清除该配置项
+            set_fields = {'title': title, 'updated_at': now}
+            unset_fields = []
+            for field, value in [('start_date', start_date), ('end_date', end_date), ('workshop_code', workshop_code)]:
+                if value:
+                    set_fields[field] = value
+                else:
+                    unset_fields.append(field)
+
             if doc:
-                await coll.update_one(
-                    {'_id': doc['_id']},
-                    {'$set': {'title': title, 'updated_at': now}}
-                )
+                update = {'$set': set_fields}
+                if unset_fields:
+                    update['$unset'] = {field: '' for field in unset_fields}
+                await coll.update_one({'_id': doc['_id']}, update)
             else:
-                await coll.insert_one({
+                insert_data = {
                     'title': title,
                     'created_at': now,
                     'updated_at': now,
-                })
+                }
+                for field in ('start_date', 'end_date', 'workshop_code'):
+                    if set_fields.get(field):
+                        insert_data[field] = set_fields[field]
+                await coll.insert_one(insert_data)
 
             self.send_response(Response.success({"title": title}, "保存成功"))
         except Exception:

@@ -27,7 +27,8 @@ export default {
 
   // 智能看板配置
   getDashboardConfig: () => _get('api/trace_app/dashboard/config'),
-  saveDashboardConfig: (title: string) => _post('api/trace_app/dashboard/config', { title }),
+  saveDashboardConfig: (params: { title: string, start_date?: string, end_date?: string, workshop_code?: string }) =>
+    _post('api/trace_app/dashboard/config', params),
 
   // 生产基础配置
   queryRoutingList: () => _post('api/trace_app/base_config/routing_list'),
