@@ -1,6 +1,8 @@
 import { ref } from 'vue'
 import { useWebSocket, type WsMessage } from './useWebSocket'
 
+declare const websocket_base_url: string
+
 /** OEE 单条数据项 */
 export interface OeeItem {
   name: string
@@ -59,11 +61,7 @@ function parseOeeMessage(msg: OeeMessage): OeeData {
 }
 
 function getWebSocketUrl(): string {
-  if (import.meta.env.DEV) {
-    return 'ws://localhost:18085/ws/oee'
-  }
-  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${protocol}//${location.host}/ws/oee`
+  return `${websocket_base_url}/ws/oee`
 }
 
 export function useDashboardWebSocket() {

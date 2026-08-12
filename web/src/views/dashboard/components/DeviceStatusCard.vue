@@ -29,23 +29,16 @@
     <div v-else-if="error" class="tech-placeholder">{{ error }}</div>
     <div v-else-if="units.length == 0" class="tech-placeholder">该产线暂无设备数据</div>
     <div v-else class="processes-wrap">
-      <div v-for="group in groupedDevices" :key="group.code" class="unit-group">
-        <div class="unit-name">
-          <span class="unit-name-bar"></span>
-          {{ group.name }}
-          <span class="unit-name-count">{{ group.devices.length }} DEV</span>
-        </div>
-        <div class="devices-grid">
-          <div
-            v-for="dev in group.devices"
-            :key="dev.device_code"
-            class="device-tile"
-            :style="tileStyle(dev.status)"
-            :title="group.name + ' · ' + dev.device_code"
-          >
-            <img :src="deviceIcon(dev.device_type, dev.status)" class="device-tile-icon" />
-            <span class="device-tile-name">{{ dev.device_name }}</span>
-          </div>
+      <div class="devices-grid">
+        <div
+          v-for="dev in allDevices"
+          :key="dev.device_code"
+          class="device-tile"
+          :style="tileStyle(dev.status)"
+          :title="dev.unit_name + ' · ' + dev.device_code"
+        >
+          <img :src="deviceIcon(dev.device_type, dev.status)" class="device-tile-icon" />
+          <span class="device-tile-name">{{ dev.device_name }}</span>
         </div>
       </div>
     </div>
@@ -146,16 +139,13 @@ const legendItems = ['运行', '待机', '故障', '关机'].map(name => ({ name
 
 const hasDevices = computed(() => units.value.some(u => u.devices.length > 0))
 
-// 按生产单元分组拍平，状态取自 WebSocket 实时推送，取不到默认关机
-const groupedDevices = computed(() => {
-  const result: { code: string, name: string, devices: { device_code: string, device_name: string, device_type: string, status: string }[] }[] = []
+// 产线所有设备拍平到单个网格横向排列自动换行；状态取自 WebSocket 实时推送，取不到默认关机
+const allDevices = computed(() => {
+  const result: { device_code: string, device_name: string, device_type: string, status: string, unit_name: string }[] = []
   for (const u of units.value) {
-    const devices = u.devices.map(dev => {
+    for (const dev of u.devices) {
       const statusCode = deviceStatus.value[dev.device_code] || 0
-      return { ...dev, status: STATUS_NAMES[statusCode] || '关机' }
-    })
-    if (devices.length > 0) {
-      result.push({ code: u.produce_unit_code, name: u.produce_unit_name, devices })
+      result.push({ ...dev, status: STATUS_NAMES[statusCode] || '关机', unit_name: u.produce_unit_name })
     }
   }
   return result
@@ -208,46 +198,16 @@ function hexToRgb(hex: string): string {
   border-radius: 50%;
 }
 
-/* ========== 生产单元分组 ========== */
+/* ========== 设备网格 ========== */
 .processes-wrap {
   @apply flex-1 flex flex-col min-h-0;
-  gap: 8px;
-}
-
-.unit-group {
-  @apply flex flex-col min-h-0;
-}
-
-.unit-name {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  color: rgba(200, 218, 255, 0.75);
-  margin-bottom: 4px;
-}
-
-.unit-name-bar {
-  width: 12px;
-  height: 1px;
-  background: linear-gradient(90deg, #38bdf8, transparent);
-}
-
-.unit-name-count {
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 9px;
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  color: rgba(148, 184, 255, 0.4);
 }
 
 .devices-grid {
   @apply flex-1 overflow-y-auto;
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
   align-content: flex-start;
   gap: 8px;
   padding-bottom: 2px;

@@ -1,6 +1,8 @@
 import { ref } from 'vue'
 import { useWebSocket, type WsMessage } from './useWebSocket'
 
+declare const websocket_base_url: string
+
 /** 设备状态消息结构 */
 export interface DeviceStatusMessage extends WsMessage {
   type: 'device_status'
@@ -12,11 +14,7 @@ export interface DeviceStatusMessage extends WsMessage {
 export const STATUS_NAMES = ['关机', '运行', '待机', '故障']
 
 function getWebSocketUrl(): string {
-  if (import.meta.env.DEV) {
-    return 'ws://localhost:18085/ws/device_status'
-  }
-  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${protocol}//${location.host}/ws/device_status`
+  return `${websocket_base_url}/ws/device_status`
 }
 
 export function useDeviceStatus() {

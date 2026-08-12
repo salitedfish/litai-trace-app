@@ -16,9 +16,10 @@ export default defineConfig(({ mode }) => {
     plugins: [vue()],
     define: {
       http_base_url: isDevMode ? JSON.stringify('/') : 'location.origin',
+      // WebSocket 直连后端 host:port（不经过 nginx /api 代理，后端 WS 路由在根路径 /ws/...）
       websocket_base_url: isDevMode
-        ? JSON.stringify(`ws://${requestHost}/api/${scopeName}`)
-        : `(location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/api/${scopeName}"`
+        ? JSON.stringify(`ws://${requestHost}`)
+        : `(location.protocol === "https:" ? "wss://" : "ws://") + location.hostname + ":18085"`
     },
     server: {
       host: '0.0.0.0',
