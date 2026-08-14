@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, provide, onMounted, onUnmounted } from 'vue'
+import { ref, provide, onMounted, onUnmounted, watch } from 'vue'
 import Sidebar from './components/layout/Sidebar.vue'
 import Header from './components/layout/Header.vue'
 import HomeView from './views/HomeView.vue'
@@ -33,7 +33,14 @@ import { registerServiceWorker } from './registerServiceWorker'
 
 const isSidebarOpen = ref(true)
 const isMobile = ref(false)
-const currentView = ref('home')
+
+// 当前视图持久化：刷新页面时保持当前页（sessionStorage 刷新保留、关闭会话清空）
+const VIEW_STORAGE_KEY = 'trace_app_current_view'
+const currentView = ref(sessionStorage.getItem(VIEW_STORAGE_KEY) || 'home')
+
+watch(currentView, (view) => {
+  sessionStorage.setItem(VIEW_STORAGE_KEY, view)
+})
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth < 768

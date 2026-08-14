@@ -9,6 +9,7 @@ from trace_app.entity.response_model import (
     LineDevicesRequest,
     LineDevicesResponse,
     LineListResponse,
+    ProductTypeListResponse,
     RoutingListResponse,
     RoutingProcessRequest,
     RoutingProcessResponse,
@@ -16,6 +17,7 @@ from trace_app.entity.response_model import (
 from trace_app.utils.swagger_utils import swagger_doc
 from trace_app.utils.collection_utils import (
     get_process_coll,
+    get_production_config_type_coll,
     get_routing_process_info_coll,
     get_web_layout_application_coll,
 )
@@ -184,6 +186,46 @@ class BaseConfigHandler(BaseHandler):
                 "routing_name": routing_name,
                 "processes": processes,
             }, "查询成功"))
+
+        except Exception:
+            get_logger().error(traceback.format_exc())
+            self.send_response(Response.fail("查询失败，服务器内部错误"))
+
+    # =====================================================================
+    # 产品型号列表查询
+    # production_config_type 表按产品型号去重
+    # =====================================================================
+
+    @request_mapping('/product_type_list', method='post', description='获取产品型号列表')
+    @swagger_doc(
+        tags=["生产基础配置"],
+        summary="获取产品型号列表",
+        description="从 production_config_type 表按产品型号去重，返回产品型号及对应工艺路线编码",
+        response_model=ProductTypeListResponse,
+    )
+    @loginrequired
+    async def query_product_type_list(self):
+        """查询产品型号列表（production_config_type），用于前端单选框选择"""
+        try:
+            coll = await get_production_config_type_coll()
+            pipeline = [
+                {"$group": {
+                    "_id": "$production_type",
+                    "routing_code": {"$first": "$routing_code"},
+                }},
+                {"$sort": {"_id": 1}},
+            ]
+            result = []
+            async for r in coll.aggregate(pipeline):
+                production_type = r.get("_id", "")
+                if not production_type:
+                    continue
+                result.append({
+                    "production_type": production_type,
+                    "routing_code": r.get("routing_code", ""),
+                })
+
+            self.send_response(Response.success(result, "查询成功"))
 
         except Exception:
             get_logger().error(traceback.format_exc())

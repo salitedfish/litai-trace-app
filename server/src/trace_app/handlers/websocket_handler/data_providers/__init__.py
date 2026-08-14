@@ -1,2 +1,4 @@
 from trace_app.handlers.websocket_handler.data_providers.device_status_provider import DeviceStatusProvider
 from trace_app.handlers.websocket_handler.data_providers.oee_provider import OeeProvider
+from trace_app.handlers.websocket_handler.data_providers.process_quality_provider import ProcessQualityProvider
+from trace_app.handlers.websocket_handler.data_providers.hourly_output_provider import HourlyOutputProvider

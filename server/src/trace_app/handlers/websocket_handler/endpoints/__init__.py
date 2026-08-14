@@ -1,1 +1,3 @@
 from trace_app.handlers.websocket_handler.endpoints.oee import OeeWsHandler
+from trace_app.handlers.websocket_handler.endpoints.process_quality import ProcessQualityWsHandler
+from trace_app.handlers.websocket_handler.endpoints.hourly_output import HourlyOutputWsHandler

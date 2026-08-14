@@ -103,10 +103,10 @@ server/bin/run.sh {start|stop|status|debug} # 服务管理
 
 **结构**：
 - `main.ts` — Vue 3 应用入口，无 router（单视图应用，用 `currentView` 状态手动切换）
-- `App.vue` — 根布局：侧边栏导航 + 主内容区。侧边栏切换 `currentView` ref
+- `App.vue` — 根布局：侧边栏导航 + 主内容区。侧边栏切换 `currentView` ref；`currentView` 用 `sessionStorage` 持久化，刷新页面保持当前页
 - `views/HomeView.vue` — 首页仪表盘，展示服务状态和 API 端点列表
 - `views/HistoryView.vue` — 历史记录页面（开发中）
-- `views/dashboard/` — 智能生产看板；`DashboardView.vue` 只做布局 + 状态管理（WebSocket 连接、从看板配置读取查询日期/产线），各卡片拆在 `views/dashboard/components/`：`HeaderBar`（顶栏）、`OeeCard`（OEE 仪表盘）、`DeviceStatusCard`（产线设备实时状态）、`PlanActualOutputCard`（计划/实际产量，预留）、`ProcessQualifiedRateCard`（工序合格率，预留）、`HourlyOutputCard`（小时产量统计，预留）、`HistoryDataCard`（历史数据，预留）。看板标题 / 查询日期 / 产线等配置在 `views/dashboard/DashboardSettingsView.vue`（智能看板设置）维护，看板加载时经 `getDashboardConfig` 一并获取并应用。科技主题共用样式集中在 `views/dashboard/dashboard.theme.css`（`tech-panel` 四角括号面板 / `tech-panel-title` / `tech-badge` / `chart-card-placeholder` 预留占位 / 全局动画 keyframes），由 `DashboardView.vue` 引入，看板内组件共用
+- `views/dashboard/` — 智能生产看板；`DashboardView.vue` 只做布局 + 状态管理（WebSocket 连接、从看板配置读取查询日期/产线），各卡片拆在 `views/dashboard/components/`：`HeaderBar`（顶栏）、`OeeCard`（OEE 仪表盘）、`DeviceStatusCard`（产线设备实时状态）、`PlanActualOutputCard`（计划/实际产量，预留）、`ProcessQualifiedRateCard`（工序合格率，WebSocket 实时）、`HourlyOutputCard`（小时产量统计，WebSocket 实时柱状图）、`HistoryDataCard`（历史数据，预留）。看板标题 / 查询日期 / 产线 / 产品型号（数据源 `production_config_type` 表）等配置在 `views/dashboard/DashboardSettingsView.vue`（智能看板设置）维护，看板加载时经 `getDashboardConfig` 一并获取并应用。科技主题共用样式集中在 `views/dashboard/dashboard.theme.css`（`tech-panel` 四角括号面板 / `tech-panel-title` / `tech-badge` / `chart-card-placeholder` 预留占位 / 全局动画 keyframes），由 `DashboardView.vue` 引入，看板内组件共用
 - `composables/useServiceStatus.ts` — 共享服务状态 composable，模块级单例，自动检测后端健康状态
 - `api/trace-app.ts` — API 方法，使用 `httpWrap.ts` 的 `_get`/`_post`
 - `api/httpWrap.ts` — Axios 实例，带登录跳转拦截器、base URL 自动识别（开发 vs 部署），定义了 `ApiResponse<T>` 统一响应类型

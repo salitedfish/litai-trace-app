@@ -13,43 +13,57 @@
         </div>
       </div>
 
-      <div class="space-y-6">
-        <div class="flex flex-col gap-2">
+      <div class="grid grid-cols-2 gap-x-5 gap-y-6">
+        <!-- 看板标题（整行） -->
+        <div class="flex flex-col gap-2 col-span-2">
           <label class="text-sm font-medium text-foreground">
             看板标题 <span class="text-red-500">*</span>
           </label>
           <input v-model="title" type="text" placeholder="请输入看板标题"
-            class="w-full max-w-md px-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all" />
+            class="w-full px-4 py-2.5 rounded-lg border border-border bg-white text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all" />
           <p class="text-xs text-muted-foreground">该标题将显示在智能看板的顶部</p>
         </div>
 
+        <!-- 开始日期 / 结束日期 -->
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium text-foreground">开始日期</label>
           <input v-model="startDate" type="date"
-            class="w-full max-w-md px-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all" />
-          <p class="text-xs text-muted-foreground">看板 OEE 等统计的起始日期，为空则取当天</p>
+            class="w-full px-4 py-2.5 rounded-lg border border-border bg-white text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all" />
+          <p class="text-xs text-muted-foreground">统计的起始日期，为空则取当天</p>
         </div>
 
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium text-foreground">结束日期</label>
           <input v-model="endDate" type="date"
-            class="w-full max-w-md px-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all" />
-          <p class="text-xs text-muted-foreground">看板 OEE 等统计的截止日期，为空则取当天</p>
+            class="w-full px-4 py-2.5 rounded-lg border border-border bg-white text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all" />
+          <p class="text-xs text-muted-foreground">统计的截止日期，为空则取当天</p>
         </div>
 
+        <!-- 产线 / 产品型号 -->
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium text-foreground">产线</label>
-          <select v-model="workshopCode" :disabled="lineLoading"
-            class="w-full max-w-md px-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all disabled:opacity-50">
-            <option value="">请选择产线</option>
-            <option v-for="line in lineList" :key="line.workshop_code" :value="line.workshop_code">
-              {{ line.workshop_name }}
-            </option>
-          </select>
+          <CustomSelect
+            v-model="workshopCode"
+            :options="lineOptions"
+            :disabled="lineLoading"
+            variant="outline"
+            placeholder="请选择产线"
+          />
           <p class="text-xs text-muted-foreground">看板展示的产线，不选则看板不展示产线设备</p>
         </div>
 
-        <div class="flex items-center gap-3 pt-2">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-foreground">产品型号</label>
+          <MultiSelect
+            v-model="productType"
+            :options="productTypeOptions"
+            placeholder="请选择产品型号（可多选）"
+          />
+          <p class="text-xs text-muted-foreground">看板展示的产品型号，可多选，不选则不限</p>
+        </div>
+
+        <!-- 保存（整行） -->
+        <div class="flex items-center gap-3 pt-2 col-span-2">
           <button class="px-6 py-2.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center gap-2"
             :disabled="saving || !title.trim()" @click="handleSave">
             <svg v-if="saving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -68,17 +82,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '../../api/trace-app'
+import CustomSelect from '../../components/CustomSelect.vue'
+import MultiSelect from '../../components/MultiSelect.vue'
 
 const title = ref('')
 const startDate = ref('')
 const endDate = ref('')
 const workshopCode = ref('')
+const productType = ref<string[]>([])
 const lineList = ref<{ workshop_code: string, workshop_name: string }[]>([])
 const lineLoading = ref(false)
+const productTypeList = ref<{ production_type: string, routing_code: string }[]>([])
 const saving = ref(false)
 const saved = ref(false)
+
+const productTypeOptions = computed(() =>
+  productTypeList.value.map(pt => ({ label: pt.production_type, value: pt.production_type }))
+)
+
+const lineOptions = computed(() =>
+  lineList.value.map(line => ({ label: line.workshop_name, value: line.workshop_code }))
+)
 
 const loadLineList = async () => {
   lineLoading.value = true
@@ -92,6 +118,15 @@ const loadLineList = async () => {
   }
 }
 
+const loadProductTypeList = async () => {
+  try {
+    const res = await api.queryProductTypeList()
+    productTypeList.value = res.data || []
+  } catch (err: any) {
+    console.error('加载产品型号列表失败:', err)
+  }
+}
+
 onMounted(async () => {
   try {
     const res = await api.getDashboardConfig()
@@ -100,10 +135,12 @@ onMounted(async () => {
     startDate.value = cfg.start_date || ''
     endDate.value = cfg.end_date || ''
     workshopCode.value = cfg.workshop_code || ''
+    productType.value = Array.isArray(cfg.product_type) ? cfg.product_type : []
   } catch (err: any) {
     console.error('加载看板配置失败:', err)
   }
   await loadLineList()
+  await loadProductTypeList()
 })
 
 const handleSave = async () => {
@@ -116,6 +153,7 @@ const handleSave = async () => {
       start_date: startDate.value,
       end_date: endDate.value,
       workshop_code: workshopCode.value,
+      product_type: productType.value,
     })
     saved.value = true
     setTimeout(() => { saved.value = false }, 3000)

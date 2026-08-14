@@ -30,7 +30,7 @@
     <div v-else-if="error" class="tech-placeholder">{{ error }}</div>
     <div v-else-if="units.length == 0" class="tech-placeholder">该产线暂无设备数据</div>
     <div v-else class="processes-wrap">
-      <div class="devices-grid">
+      <div class="devices-grid tech-scroll">
         <div
           v-for="dev in allDevices"
           :key="dev.device_code"
@@ -217,19 +217,6 @@ function hexToRgb(hex: string): string {
   align-content: flex-start;
   gap: 8px;
   padding-bottom: 2px;
-}
-
-.devices-grid::-webkit-scrollbar {
-  width: 4px;
-}
-
-.devices-grid::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.devices-grid::-webkit-scrollbar-thumb {
-  background-color: rgba(56, 189, 248, 0.3);
-  border-radius: 20px;
 }
 
 /* ========== 设备磁贴 ========== */

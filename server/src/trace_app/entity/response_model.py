@@ -151,6 +151,7 @@ class DashboardConfigRequest(TypedDict):
     start_date: str  # 开始日期（YYYY-MM-DD，可选，空为当天）
     end_date: str  # 结束日期（YYYY-MM-DD，可选，空为当天）
     workshop_code: str  # 产线编码（可选，空为默认第一条产线）
+    product_type: List[str]  # 产品型号列表（可选，可多选，空为不限）
 
 
 class DashboardConfigResponse(BaseResponse):
@@ -248,6 +249,16 @@ class RoutingProcessResult(TypedDict):
 
 class RoutingProcessResponse(BaseResponse):
     data: RoutingProcessResult  # 工艺路线工序查询结果
+
+
+class ProductTypeItem(TypedDict):
+    """产品型号"""
+    production_type: str  # 产品型号
+    routing_code: str  # 工艺路线编码
+
+
+class ProductTypeListResponse(BaseResponse):
+    data: List[ProductTypeItem]  # 产品型号列表
 
 
 class LineItem(TypedDict):

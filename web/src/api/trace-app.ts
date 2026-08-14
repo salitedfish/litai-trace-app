@@ -27,7 +27,7 @@ export default {
 
   // 智能看板配置
   getDashboardConfig: () => _get('api/trace_app/dashboard/config'),
-  saveDashboardConfig: (params: { title: string, start_date?: string, end_date?: string, workshop_code?: string }) =>
+  saveDashboardConfig: (params: { title: string, start_date?: string, end_date?: string, workshop_code?: string, product_type?: string[] }) =>
     _post('api/trace_app/dashboard/config', params),
 
   // 生产基础配置
@@ -35,6 +35,7 @@ export default {
   queryRoutingProcesses: (routingCode: string) =>
     _post('api/trace_app/base_config/routing_processes', { routing_code: routingCode }),
   queryLineList: () => _post('api/trace_app/base_config/line_list'),
+  queryProductTypeList: () => _post('api/trace_app/base_config/product_type_list'),
   queryLineDevices: (workshopCode: string) =>
     _post('api/trace_app/base_config/line_devices', { workshop_code: workshopCode }),
 }

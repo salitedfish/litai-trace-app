@@ -30,9 +30,9 @@
 
       <!-- 图表行 2：工序合格率 / 小时产量统计+历史数据 / 预留 -->
       <section class="charts-row">
-        <ProcessQualifiedRateCard />
+        <ProcessQualifiedRateCard ref="processQualityCardRef" />
         <div class="col-span-2 stacked-col">
-          <HourlyOutputCard />
+          <HourlyOutputCard ref="hourlyOutputCardRef" />
           <HistoryDataCard />
         </div>
         <div class="tech-panel chart-card-placeholder">
@@ -72,6 +72,8 @@ const endDate = ref(today)
 const selectedLine = ref('')
 
 const oeeCardRef = ref<InstanceType<typeof OeeCard>>()
+const processQualityCardRef = ref<InstanceType<typeof ProcessQualifiedRateCard>>()
+const hourlyOutputCardRef = ref<InstanceType<typeof HourlyOutputCard>>()
 
 onMounted(async () => {
   // 加载看板配置（标题 / 查询日期 / 产线），看板参数一起获取
@@ -95,9 +97,11 @@ onMounted(async () => {
   if (configEndDate) endDate.value = configEndDate
   if (configWorkshopCode) selectedLine.value = configWorkshopCode
 
-  // 配置了查询日期时，同步给 OEE 查询
+  // 配置了查询日期时，同步给 OEE / 工序合格率 / 小时产量查询
   if (configStartDate || configEndDate) {
     oeeCardRef.value?.setDate(startDate.value, endDate.value)
+    processQualityCardRef.value?.setDate(startDate.value, endDate.value)
+    hourlyOutputCardRef.value?.setDate(startDate.value, endDate.value)
   }
 })
 </script>

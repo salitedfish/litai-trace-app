@@ -61,6 +61,12 @@ class DashboardHandler(BaseHandler):
             end_date = str(data.get('end_date') or '').strip()
             workshop_code = str(data.get('workshop_code') or '').strip()
 
+            # 产品型号支持多选，存数组；空列表表示清除
+            product_type_raw = data.get('product_type') or []
+            if not isinstance(product_type_raw, list):
+                product_type_raw = []
+            product_type = [str(x).strip() for x in product_type_raw if str(x).strip()]
+
             coll = await get_collection_handler(COLLECTION_NAME)
             doc = await coll.find_one({}, {'_id': 1})
             now = datetime.now().isoformat()
@@ -68,7 +74,12 @@ class DashboardHandler(BaseHandler):
             # 空值表示清除该配置项
             set_fields = {'title': title, 'updated_at': now}
             unset_fields = []
-            for field, value in [('start_date', start_date), ('end_date', end_date), ('workshop_code', workshop_code)]:
+            for field, value in [
+                ('start_date', start_date),
+                ('end_date', end_date),
+                ('workshop_code', workshop_code),
+                ('product_type', product_type),
+            ]:
                 if value:
                     set_fields[field] = value
                 else:
@@ -85,7 +96,7 @@ class DashboardHandler(BaseHandler):
                     'created_at': now,
                     'updated_at': now,
                 }
-                for field in ('start_date', 'end_date', 'workshop_code'):
+                for field in ('start_date', 'end_date', 'workshop_code', 'product_type'):
                     if set_fields.get(field):
                         insert_data[field] = set_fields[field]
                 await coll.insert_one(insert_data)

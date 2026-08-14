@@ -23,6 +23,11 @@ async def get_routing_process_info_coll():
     return await get_collection_handler("production_config_mgm_routing_process_info", _get_db_name("config"))
 
 
+async def get_production_config_type_coll():
+    """获取产品型号-工艺路线配置表（production_config_type）集合句柄"""
+    return await get_collection_handler("production_config_type", _get_db_name("config"))
+
+
 async def get_web_layout_application_coll():
     """获取 Web 布局应用配置表（web_layout_application）集合句柄"""
     idi_db = f"idi_{get_organization()}"

@@ -3,7 +3,7 @@
     <div
       @click="toggleDropdown"
       :class="[
-        'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all cursor-pointer shadow-sm border min-w-0 overflow-hidden',
+        'w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm transition-all cursor-pointer border min-w-0 overflow-hidden',
         variant === 'solid'
           ? (disabled ? 'opacity-50 cursor-not-allowed bg-muted/80 border-transparent' : (isOpen ? 'bg-white border-accent ring-1 ring-accent' : 'bg-muted/80 hover:bg-white border-transparent hover:border-border'))
           : (disabled ? 'opacity-50 cursor-not-allowed bg-white border-border/50' : (isOpen ? 'bg-white border-accent ring-1 ring-accent' : 'bg-white border-border hover:border-accent/50'))
