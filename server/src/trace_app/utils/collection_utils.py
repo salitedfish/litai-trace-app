@@ -1,6 +1,6 @@
 from mg_app_framework import get_organization
 
-from trace_app.utils.db import get_collection_handler
+from trace_app.utils.db import get_collection_handler, get_db_handler
 
 
 def _get_db_name(db_suffix):
@@ -11,6 +11,16 @@ def _get_db_name(db_suffix):
 async def get_records_coll():
     """获取报工记录表（work_order_retrospect_records）集合句柄"""
     return await get_collection_handler("work_order_retrospect_records", _get_db_name("order_retrospect"))
+
+
+async def get_father_worksheet_coll():
+    """获取排产表（father_worksheet）集合句柄
+
+    排产表在 {org}_scheduler 库，由 changyuan_scheduler_app 写入，只读不自动建集合。
+    """
+    org = get_organization()
+    db = await get_db_handler(f"{org}_scheduler")
+    return db.get_collection("father_worksheet")
 
 
 async def get_process_coll():

@@ -7,10 +7,19 @@
         </svg>
         小时产量统计
       </h3>
-      <span class="tech-badge" :class="connected ? 'live' : 'offline'">
-        <span class="tech-dot"></span>
-        {{ connected ? '实时' : '断开' }}
-      </span>
+      <div class="header-right-group">
+        <!-- 产品型号过滤（放在"实时"左侧，同一行） -->
+        <span
+          class="product-type-tag"
+          :title="'产品型号：' + (productTypes.length ? productTypes.join('、') : '全部')"
+        >
+          产品型号：{{ productTypes.length ? productTypes.join('、') : '全部' }}
+        </span>
+        <span class="tech-badge" :class="connected ? 'live' : 'offline'">
+          <span class="tech-dot"></span>
+          {{ connected ? '实时' : '断开' }}
+        </span>
+      </div>
     </div>
 
     <div v-if="bars.length == 0" class="tech-placeholder">
@@ -39,11 +48,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useHourlyOutput } from '../../../composables/useHourlyOutput'
 
 // ========== WebSocket 小时产量（组件自管理） ==========
-const { hourlyOutput, connected, connect, disconnect, setQueryDate } = useHourlyOutput()
+const {
+  hourlyOutput,
+  connected,
+  connect,
+  disconnect,
+  setQueryDate,
+  setProductType: setProductTypeFilter,
+} = useHourlyOutput()
+
+// 当前生效的产品型号过滤（用于头部展示；空数组表示全部产品）
+const productTypes = ref<string[]>([])
 
 onMounted(() => {
   connect()
@@ -58,7 +77,13 @@ function setDate(dateStart: string, dateEnd: string) {
   setQueryDate(dateStart, dateEnd)
 }
 
-defineExpose({ setDate })
+/** 供父组件（DashboardView）从看板配置读取产品型号后设置过滤条件 */
+function setProductType(types: string[]) {
+  setProductTypeFilter(types)
+  productTypes.value = Array.isArray(types) ? types.slice() : []
+}
+
+defineExpose({ setDate, setProductType })
 
 // 柱状图数据：按数量归一化为高度百分比（峰值最高）
 const bars = computed(() => {
@@ -76,6 +101,31 @@ const bars = computed(() => {
 .hourly-panel {
   @apply p-4 flex flex-col;
   min-height: 0;
+}
+
+/* 头部右侧：产品型号 + 实时徽标（同一行） */
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* 产品型号标签（选中多个时省略号截断，悬停看全量） */
+.product-type-tag {
+  display: inline-flex;
+  align-items: center;
+  max-width: 220px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgba(148, 184, 255, 0.85);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chart-body {

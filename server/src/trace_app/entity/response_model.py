@@ -158,6 +158,28 @@ class DashboardConfigResponse(BaseResponse):
     data: Dict[str, Any]  # 看板配置（title 等）
 
 
+class HistoryOutputRequest(TypedDict):
+    """历史数据请求参数"""
+    product_types: List[str]  # 产品型号列表（可选，可多选，空为不限）
+
+
+class HistoryOutputDay(TypedDict):
+    """某天的完成量"""
+    date: str  # 日期（MM-DD）
+    total_count: int  # 日完成量
+    avg_hourly: float  # 日均小时完成量（当天平均每小时产出）
+    first_pass_rate: float  # 日均一次合格率（当天一次合格数 ÷ 完成量 × 100）
+
+
+class HistoryOutputData(TypedDict):
+    """历史数据"""
+    days: List[HistoryOutputDay]  # 前两周每天的数据（升序，不含今天）
+
+
+class HistoryOutputResponse(BaseResponse):
+    data: HistoryOutputData  # 历史数据
+
+
 # ==================== 设备数采查询 ====================
 
 class DeviceItem(TypedDict):

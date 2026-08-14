@@ -25,7 +25,7 @@
       <section class="charts-row">
         <OeeCard ref="oeeCardRef" />
         <DeviceStatusCard class="col-span-2" :line-code="selectedLine" />
-        <PlanActualOutputCard />
+        <PlanActualOutputCard ref="planActualOutputCardRef" />
       </section>
 
       <!-- 图表行 2：工序合格率 / 小时产量统计+历史数据 / 预留 -->
@@ -33,7 +33,7 @@
         <ProcessQualifiedRateCard ref="processQualityCardRef" />
         <div class="col-span-2 stacked-col">
           <HourlyOutputCard ref="hourlyOutputCardRef" />
-          <HistoryDataCard />
+          <HistoryDataCard ref="historyDataCardRef" />
         </div>
         <div class="tech-panel chart-card-placeholder">
           <span class="placeholder-text">
@@ -74,13 +74,16 @@ const selectedLine = ref('')
 const oeeCardRef = ref<InstanceType<typeof OeeCard>>()
 const processQualityCardRef = ref<InstanceType<typeof ProcessQualifiedRateCard>>()
 const hourlyOutputCardRef = ref<InstanceType<typeof HourlyOutputCard>>()
+const planActualOutputCardRef = ref<InstanceType<typeof PlanActualOutputCard>>()
+const historyDataCardRef = ref<InstanceType<typeof HistoryDataCard>>()
 
 onMounted(async () => {
-  // 加载看板配置（标题 / 查询日期 / 产线），看板参数一起获取
+  // 加载看板配置（标题 / 查询日期 / 产线 / 产品型号），看板参数一起获取
   let configTitle = ''
   let configStartDate = ''
   let configEndDate = ''
   let configWorkshopCode = ''
+  let configProductType: string[] = []
   try {
     const res = await api.getDashboardConfig()
     const cfg = res.data || {}
@@ -88,6 +91,7 @@ onMounted(async () => {
     configStartDate = cfg.start_date || ''
     configEndDate = cfg.end_date || ''
     configWorkshopCode = cfg.workshop_code || ''
+    configProductType = Array.isArray(cfg.product_type) ? cfg.product_type : []
   } catch (_) {
     // 使用默认配置
   }
@@ -97,12 +101,22 @@ onMounted(async () => {
   if (configEndDate) endDate.value = configEndDate
   if (configWorkshopCode) selectedLine.value = configWorkshopCode
 
-  // 配置了查询日期时，同步给 OEE / 工序合格率 / 小时产量查询
+  // 配置了查询日期时，同步给 OEE / 工序合格率 / 小时产量 / 计划实际产量查询
   if (configStartDate || configEndDate) {
     oeeCardRef.value?.setDate(startDate.value, endDate.value)
     processQualityCardRef.value?.setDate(startDate.value, endDate.value)
     hourlyOutputCardRef.value?.setDate(startDate.value, endDate.value)
+    planActualOutputCardRef.value?.setDate(startDate.value, endDate.value)
   }
+
+  // 配置了产品型号时，小时产量 / 计划实际产量按产品类型过滤；未配置则查全部
+  if (configProductType.length) {
+    hourlyOutputCardRef.value?.setProductType(configProductType)
+    planActualOutputCardRef.value?.setProductType(configProductType)
+  }
+
+  // 历史数据：进看板时查一次（前两周，按配置的产品型号过滤）
+  historyDataCardRef.value?.load(configProductType)
 })
 </script>
 

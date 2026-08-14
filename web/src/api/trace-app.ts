@@ -29,6 +29,9 @@ export default {
   getDashboardConfig: () => _get('api/trace_app/dashboard/config'),
   saveDashboardConfig: (params: { title: string, start_date?: string, end_date?: string, workshop_code?: string, product_type?: string[] }) =>
     _post('api/trace_app/dashboard/config', params),
+  // 历史数据（前两周日完成量 / 日均小时完成量，进看板时查一次）
+  queryHistoryOutput: (productTypes: string[]) =>
+    _post('api/trace_app/dashboard/history_output', { product_types: productTypes }),
 
   // 生产基础配置
   queryRoutingList: () => _post('api/trace_app/base_config/routing_list'),

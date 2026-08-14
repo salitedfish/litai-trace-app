@@ -23,6 +23,7 @@ class HourlyOutputProvider(DataProvider):
         super().__init__()
         self._query_start = None
         self._query_end = None
+        self._product_types = None
 
     def setup(self):
         """连接建立时立即推送一次"""
@@ -51,6 +52,16 @@ class HourlyOutputProvider(DataProvider):
             IOLoop.current().spawn_callback(self.push)
             return True
 
+        if action == "set_product_type":
+            # 产品型号过滤；空列表表示查全部
+            product_types = message.get("product_types") or []
+            if isinstance(product_types, list):
+                self._product_types = [str(x).strip() for x in product_types if str(x).strip()]
+            else:
+                self._product_types = []
+            IOLoop.current().spawn_callback(self.push)
+            return True
+
         return False
 
     async def push(self):
@@ -64,7 +75,11 @@ class HourlyOutputProvider(DataProvider):
             if self._query_end:
                 query_end = self._query_end.replace(hour=23, minute=59, second=59, microsecond=0)
 
-            data = await get_hourly_output(start_time=query_start, end_time=query_end)
+            data = await get_hourly_output(
+                start_time=query_start,
+                end_time=query_end,
+                product_types=self._product_types,
+            )
 
             query_label = "today"
             if self._query_start or self._query_end:

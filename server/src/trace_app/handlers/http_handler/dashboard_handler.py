@@ -6,9 +6,10 @@ from tornado_request_mapping import request_mapping
 
 from trace_app.common.base_handler import BaseHandler
 from trace_app.entity.response_entity import Response
-from trace_app.entity.response_model import DashboardConfigRequest, DashboardConfigResponse
+from trace_app.entity.response_model import DashboardConfigRequest, DashboardConfigResponse, HistoryOutputRequest, HistoryOutputResponse
 from trace_app.utils.swagger_utils import swagger_doc
 from trace_app.utils.db import get_collection_handler
+from trace_app.service.history_output_service import get_history_output
 
 
 COLLECTION_NAME = 'dashboard_config_1'
@@ -102,6 +103,30 @@ class DashboardHandler(BaseHandler):
                 await coll.insert_one(insert_data)
 
             self.send_response(Response.success({"title": title}, "保存成功"))
+        except Exception:
+            get_logger().error(traceback.format_exc())
+            raise
+
+    @request_mapping('/history_output', method='post', description='获取历史数据')
+    @swagger_doc(
+        tags=["智能看板"],
+        summary="获取历史数据",
+        description="获取前两周（不含今天）的日完成量 / 日均小时完成量",
+        request_model=HistoryOutputRequest,
+        response_model=HistoryOutputResponse,
+    )
+    @loginrequired
+    async def get_history_output(self):
+        """查询前两周的日完成量 / 日均小时完成量（进看板时查一次）"""
+        try:
+            data = self.data or {}
+            product_types = data.get('product_types') or []
+            if not isinstance(product_types, list):
+                product_types = []
+            product_types = [str(x).strip() for x in product_types if str(x).strip()]
+
+            result = await get_history_output(product_types=product_types)
+            self.send_response(Response.success(result, "获取成功"))
         except Exception:
             get_logger().error(traceback.format_exc())
             raise
