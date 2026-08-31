@@ -122,6 +122,7 @@ server/bin/run.sh {start|stop|status|debug} # 服务管理
 - Vite 在 `0.0.0.0:8081`
 - 开发时代理 `/api/*` → `localhost:18085`
 - 构建产物输出到 `web/dist/trace_app/`
+- ⚠️ **`vite.config.ts` 里 `build.target` 必须是 `chrome64`，不要调高** —— 看板要在产线电视（安卓 TV，内置浏览器/WebView 内核普遍偏老）上打开，`chrome88` 产物里的 ES2020/21 语法（`??=`/`||=`/`??`）会让老内核 `SyntaxError` 直接白屏。`chrome64` 已足够低（`import.meta` 需 64+，再低要上 `@vitejs/plugin-legacy`）
 - 全局 `http_base_url` 和 `websocket_base_url` 通过 Vite `define` 定义
 
 ## 开发模式

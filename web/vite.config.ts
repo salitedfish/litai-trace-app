@@ -10,7 +10,9 @@ export default defineConfig(({ mode }) => {
   return {
     base: './',
     build: {
-      target: 'chrome88',
+      // 最低支持到 Chrome 64：产物体内用到 import.meta（Chrome 64+），且需 esbuild 把 ES2020/21 语法
+    // （??=、||=、?? 等）降级 —— 电视自带浏览器内核普遍偏老，目标线过高会导致白屏（SyntaxError）
+    target: 'chrome64',
       outDir: `dist/${scopeName}`
     },
     plugins: [vue()],
