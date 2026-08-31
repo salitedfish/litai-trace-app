@@ -7,7 +7,11 @@ from mg_app_framework import get_logger
 from tornado.ioloop import IOLoop
 
 from trace_app.handlers.websocket_handler.data_providers.base_provider import DataProvider
-from trace_app.service.device_status_service import get_device_status_map, load_initial_device_status
+from trace_app.service.device_status_service import (
+    get_device_status_map,
+    load_initial_device_status,
+    refresh_device_status_if_needed,
+)
 
 
 class DeviceStatusProvider(DataProvider):
@@ -29,6 +33,8 @@ class DeviceStatusProvider(DataProvider):
         """计算并推送设备状态数据"""
         try:
             await load_initial_device_status()
+            # 周期对账：`time_interval_status` 事件驱动易漏收，定期从表重读覆盖内存 map，避免状态永久陈旧
+            await refresh_device_status_if_needed()
             self.send({
                 "type": "device_status",
                 "data": {"device_map": get_device_status_map()},

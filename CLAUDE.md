@@ -86,6 +86,7 @@ server/bin/run.sh {start|stop|status|debug} # 服务管理
 - `process_mq_msg` 把入站消息分发到已注册的处理函数
 - `send_rabbit_mq(data, key)` 发布消息
 - 订阅 `time_interval_status` 获取设备实时状态（`device_exception_compute` 推送，value 为状态码）。`service/device_status_service.py` 在进程内维护 `{device_code: status_code}` 映射（4/5/6 → 2；对外只保留 0 关机 / 1 运行 / 2 待机 / 3 故障），启动时从 `device_exception_status_interval` 集合预填（`my_init_func`），并通过 `DeviceStatusProvider` 经 WebSocket `/ws/device_status`（每 5 秒快照）推给客户端。
+- ⚠️ **设备状态对账**：`time_interval_status` 是事件驱动、只在状态变化时发，漏收一条事件会让该设备状态**永久陈旧**（且两个实例各维护一份内存 map，长期分叉）。`device_status_service.py` 每 60 秒从表重读当前活跃时间片（`end_time` 为空的最新一条）整体覆盖内存 map 对账（`refresh_device_status_if_needed`，由 WebSocket push 每 5 秒调用触发），保证实例收敛到表真值。**注意：对账只解决"实例间不一致"，若设备状态链本身冻结（如设备被 `device_exception_compute` 判为离线但时间片不更新），表里的状态本身就是旧的** —— 需上游排查。
 
 **工具**：
 - `utils.py` — 二维码生成（qrcode + reportlab）、序列号生成（MES+YYMMDD+NNNNNNN，用 MongoDB 原子计数器）
@@ -103,7 +104,7 @@ server/bin/run.sh {start|stop|status|debug} # 服务管理
 
 **结构**：
 - `main.ts` — Vue 3 应用入口，无 router（单视图应用，用 `currentView` 状态手动切换）
-- `App.vue` — 根布局：侧边栏导航 + 主内容区。侧边栏切换 `currentView` ref；`currentView` 用 `sessionStorage` 持久化，刷新页面保持当前页
+- `App.vue` — 根布局：侧边栏导航 + 主内容区。侧边栏切换 `currentView` ref；`currentView` 用 `localStorage` 持久化（跨标签页/浏览器重开保留），**默认落点看板**（无历史记录时首次打开直接进看板，之后记住上次所在页）
 - `views/HomeView.vue` — 首页仪表盘，展示服务状态和 API 端点列表
 - `views/HistoryView.vue` — 历史记录页面（开发中）
 - `views/dashboard/` — 智能生产看板；`DashboardView.vue` 只做布局 + 状态管理（WebSocket 连接、从看板配置读取查询日期/产线），各卡片拆在 `views/dashboard/components/`：`HeaderBar`（顶栏）、`OeeCard`（OEE 仪表盘）、`DeviceStatusCard`（产线设备实时状态）、`PlanActualOutputCard`（计划/实际产量，WebSocket 实时，三块：计划产量 / 实际产量 / 产量进度，按配置的产品型号过滤，统计日期取配置的时间范围、不配置默认当天）、`ProcessQualifiedRateCard`（工序合格率，WebSocket 实时）、`HourlyOutputCard`（小时产量统计，WebSocket 实时柱状图）、`HistoryDataCard`（历史数据，进看板时 HTTP 查一次：前两周不含今天、每天一列的表格（行=日均一次合格率/日均小时完成量/日完成量，列=日期），按配置的产品型号过滤）。看板标题 / 查询日期 / 产线 / 产品型号（数据源 `production_config_type` 表）等配置在 `views/dashboard/DashboardSettingsView.vue`（智能看板设置）维护，看板加载时经 `getDashboardConfig` 一并获取并应用。科技主题共用样式集中在 `views/dashboard/dashboard.theme.css`（`tech-panel` 四角括号面板 / `tech-panel-title` / `tech-badge` / `chart-card-placeholder` 预留占位 / 全局动画 keyframes），由 `DashboardView.vue` 引入，看板内组件共用

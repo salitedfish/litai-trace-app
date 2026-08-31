@@ -34,12 +34,13 @@ import { registerServiceWorker } from './registerServiceWorker'
 const isSidebarOpen = ref(true)
 const isMobile = ref(false)
 
-// 当前视图持久化：刷新页面时保持当前页（sessionStorage 刷新保留、关闭会话清空）
+// 当前视图持久化：localStorage 跨标签页/浏览器重开保留；
+// 默认落点看板 —— 首次打开（无历史记录）直接进看板，之后记住上次所在页
 const VIEW_STORAGE_KEY = 'trace_app_current_view'
-const currentView = ref(sessionStorage.getItem(VIEW_STORAGE_KEY) || 'home')
+const currentView = ref(localStorage.getItem(VIEW_STORAGE_KEY) || 'dashboard')
 
 watch(currentView, (view) => {
-  sessionStorage.setItem(VIEW_STORAGE_KEY, view)
+  localStorage.setItem(VIEW_STORAGE_KEY, view)
 })
 
 const checkMobile = () => {
