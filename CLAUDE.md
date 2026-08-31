@@ -107,8 +107,11 @@ server/bin/run.sh {start|stop|status|debug} # 服务管理
 - `App.vue` — 根布局：侧边栏导航 + 主内容区。侧边栏切换 `currentView` ref；`currentView` 用 `localStorage` 持久化（跨标签页/浏览器重开保留），**默认落点看板**（无历史记录时首次打开直接进看板，之后记住上次所在页）
 - `views/HomeView.vue` — 首页仪表盘，展示服务状态和 API 端点列表
 - `views/HistoryView.vue` — 历史记录页面（开发中）
+- `views/TraceQueryView.vue` — 追溯查询（产出码/投入码追溯链路）。工艺参数弹窗头部有「数采数据」按钮：以当前报工记录的设备 + 报工时间为中点±30min 跳转数采查询（经 `useDeviceDataNav` 传递，见下）。两个打开工艺参数的入口（追溯行「工艺参数」/ 提交记录「工艺参数」）都补齐了 `device_code` / `op_time` 供该按钮使用
+- `views/DeviceDataView.vue` — 数采查询（按设备/点位/时间段查 `datas` 表信号数据）。`watch(useDeviceDataNav().state.pending)` 消费追溯查询跳转预填：填充设备 + 起止时间后自动查询（点位清空查全部）
 - `views/dashboard/` — 智能生产看板；`DashboardView.vue` 只做布局 + 状态管理（WebSocket 连接、从看板配置读取查询日期/产线），各卡片拆在 `views/dashboard/components/`：`HeaderBar`（顶栏）、`OeeCard`（OEE 仪表盘）、`DeviceStatusCard`（产线设备实时状态）、`PlanActualOutputCard`（计划/实际产量，WebSocket 实时，三块：计划产量 / 实际产量 / 产量进度，按配置的产品型号过滤，统计日期取配置的时间范围、不配置默认当天）、`ProcessQualifiedRateCard`（工序合格率，WebSocket 实时）、`HourlyOutputCard`（小时产量统计，WebSocket 实时柱状图）、`HistoryDataCard`（历史数据，进看板时 HTTP 查一次：前两周不含今天、每天一列的表格（行=日均一次合格率/日均小时完成量/日完成量，列=日期），按配置的产品型号过滤）。看板标题 / 查询日期 / 产线 / 产品型号（数据源 `production_config_type` 表）等配置在 `views/dashboard/DashboardSettingsView.vue`（智能看板设置）维护，看板加载时经 `getDashboardConfig` 一并获取并应用。科技主题共用样式集中在 `views/dashboard/dashboard.theme.css`（`tech-panel` 四角括号面板 / `tech-panel-title` / `tech-badge` / `chart-card-placeholder` 预留占位 / 全局动画 keyframes），由 `DashboardView.vue` 引入，看板内组件共用
 - `composables/useServiceStatus.ts` — 共享服务状态 composable，模块级单例，自动检测后端健康状态
+- `composables/useDeviceDataNav.ts` — 追溯查询 → 数采查询的跨视图跳转预填（应用无 router、视图 `v-show` 常驻挂载，故用模块级单例状态传递）。导出 `useDeviceDataNav()`（返回 `state`：`device_code`/`start_time`/`end_time`/`pending`）、`navigateToDeviceData({device_code, report_time})`（以报工时间为中心 ±30min 计算起止时间并置 `pending=true`）、`formatDatetimeLocal`（`YYYY-MM-DDTHH:mm`，与数采查询搜索栏一致）。写方 TraceQueryView，读方 DeviceDataView
 - `api/trace-app.ts` — API 方法，使用 `httpWrap.ts` 的 `_get`/`_post`
 - `api/httpWrap.ts` — Axios 实例，带登录跳转拦截器、base URL 自动识别（开发 vs 部署），定义了 `ApiResponse<T>` 统一响应类型
 

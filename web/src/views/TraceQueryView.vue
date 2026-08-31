@@ -169,9 +169,15 @@
                 <span class="ml-2">产出: <code class="bg-muted px-1 py-0.5 rounded font-mono text-xs">{{ paramStep?.qr_code }}</code></span>
               </p>
             </div>
-            <button class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" @click="closeParamModal">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+            <div class="flex items-center gap-2">
+              <button class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent text-white hover:bg-accent/90 transition-colors flex items-center gap-1.5" @click="goDeviceDataFromParam">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+                数采数据
+              </button>
+              <button class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" @click="closeParamModal">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
           </div>
           <div class="overflow-auto flex-1 p-6">
             <div v-if="paramLoading" class="flex items-center justify-center gap-2 text-sm text-muted-foreground py-8">
@@ -315,8 +321,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineComponent, h } from 'vue'
+import { ref, inject, defineComponent, h } from 'vue'
+import type { Ref } from 'vue'
 import api from '../api/trace-app'
+import { showToast } from '../utils/dialog'
+import { navigateToDeviceData } from '../composables/useDeviceDataNav'
+
+const currentView = inject<Ref<string>>('currentView', ref('home'))
 
 const outputCode = ref('')
 const inputCode = ref('')
@@ -463,6 +474,21 @@ const closeParamModal = () => {
   paramData.value = []
 }
 
+// ========== 数采数据：跳转数采查询并携带设备 + 报工时间±30min ==========
+const goDeviceDataFromParam = () => {
+  const step = paramStep.value
+  const ok = navigateToDeviceData({
+    device_code: step?.device_code || '',
+    report_time: step?.op_time || '',
+  })
+  if (!ok) {
+    showToast('该报工记录缺少设备或报工时间，无法跳转数采查询', 'warning')
+    return
+  }
+  closeParamModal()
+  currentView.value = 'device_data'
+}
+
 // ========== 提交记录弹窗 ==========
 const openSubmissionModal = async (step: any) => {
   subStep.value = step
@@ -499,12 +525,15 @@ const openInputFromSub = (rec: any) => {
 }
 
 // 从提交记录弹窗打开工艺参数弹窗：先关提交记录，再开工艺参数，避免 z-index 遮挡
+// 补带 device_code / op_time，供「数采数据」按钮跳转使用（rec 为提交记录本身，op_time 更精确）
 const openProcessParamFromSub = (rec: any) => {
   const step = {
     workorder_code: rec.workorder_code,
     procedure_name: subStep.value?.procedure_name,
     procedure_code: subStep.value?.procedure_code,
     qr_code: subStep.value?.qr_code,
+    device_code: subStep.value?.device_code || rec.device_code,
+    op_time: rec.op_time || subStep.value?.op_time,
   }
   closeSubModal()
   openProcessParamModal(step)

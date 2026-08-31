@@ -119,6 +119,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '../api/trace-app'
 import CustomSelect from '../components/CustomSelect.vue'
+import { useDeviceDataNav, formatDatetimeLocal } from '../composables/useDeviceDataNav'
+
+// 追溯查询跳转预填状态（TraceQueryView 写入）
+const { state: deviceDataNavState } = useDeviceDataNav()
 
 // 设备列表
 const selectedDevice = ref('')
@@ -242,6 +246,31 @@ const doQuery = async () => {
   }
 }
 
+// ========== 接收追溯查询跳转预填（工艺参数 → 数采数据） ==========
+// TraceQueryView 写入 deviceDataNavState.pending=true 后，填充搜索栏并自动查询
+watch(() => deviceDataNavState.pending, async (pending) => {
+  if (!pending) return
+  try {
+    // 设备列表尚未加载则先加载（正常进入页面时 onMounted 已加载）
+    if (deviceOptions.value.length == 0) {
+      await loadDeviceList()
+    }
+    if (deviceDataNavState.device_code) {
+      selectedDevice.value = deviceDataNavState.device_code
+      startTime.value = deviceDataNavState.start_time
+      endTime.value = deviceDataNavState.end_time
+      // 点位清空，查询该设备全部点位
+      selectedPoint.value = ''
+      pointOptions.value = []
+      await handleQuery()
+    }
+  } catch (err) {
+    console.error('应用数采查询预填失败:', err)
+  } finally {
+    deviceDataNavState.pending = false
+  }
+})
+
 // ========== 分页 ==========
 const goPage = (p: number) => {
   if (p < 1 || p > totalPages.value) return
@@ -250,15 +279,6 @@ const goPage = (p: number) => {
 }
 
 // ========== 工具 ==========
-const formatDatetimeLocal = (d: Date) => {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const h = String(d.getHours()).padStart(2, '0')
-  const min = String(d.getMinutes()).padStart(2, '0')
-  return `${y}-${m}-${day}T${h}:${min}`
-}
-
 const fmtTime = (t: string) => t ? t.replace(/\.\d+/, '').replace('T', ' ') : '-'
 
 const valueColorClass = (v: string) => {
