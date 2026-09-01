@@ -31,7 +31,7 @@ export const formatDatetimeLocal = (d: Date) => {
   return `${y}-${m}-${day}T${h}:${min}`
 }
 
-// 以报工时间为中点，前后各取 30 分钟，写入预填状态。
+// 以报工时间为中点，前后各取 5 分钟，写入预填状态。
 // 返回 false 表示缺少设备或报工时间无效，无法跳转。
 export const navigateToDeviceData = (params: { device_code: string; report_time: string }) => {
   const report = (params.report_time || '').trim().replace(/\.\d+$/, '')
@@ -40,8 +40,8 @@ export const navigateToDeviceData = (params: { device_code: string; report_time:
   const t = new Date(report.includes('T') ? report : report.replace(' ', 'T'))
   if (isNaN(t.getTime())) return false
   state.device_code = params.device_code
-  state.start_time = formatDatetimeLocal(new Date(t.getTime() - 30 * 60 * 1000))
-  state.end_time = formatDatetimeLocal(new Date(t.getTime() + 30 * 60 * 1000))
+  state.start_time = formatDatetimeLocal(new Date(t.getTime() - 5 * 60 * 1000))
+  state.end_time = formatDatetimeLocal(new Date(t.getTime() + 5 * 60 * 1000))
   state.pending = true
   return true
 }
