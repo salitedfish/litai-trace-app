@@ -9,6 +9,9 @@ db_index_map = {
     'dashboard_config_1': [
         [("updated_at", -1)],  # 按更新时间降序
     ],
+    'dashboard_config_2': [
+        [("updated_at", -1)],  # 按更新时间降序
+    ],
 }
 
 

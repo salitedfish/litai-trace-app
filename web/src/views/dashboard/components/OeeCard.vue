@@ -80,15 +80,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onUnmounted } from 'vue'
 import { useDashboardWebSocket } from '../../../composables/useDashboardWebSocket'
 
-// ========== WebSocket OEE 数据（组件自管理） ==========
+// ========== WebSocket OEE 数据（组件自管理，父组件配置就绪后 start 启动） ==========
 const { oeeData, connected, connect, disconnect, setQueryDate } = useDashboardWebSocket()
-
-onMounted(() => {
-  connect()
-})
 
 onUnmounted(() => {
   disconnect()
@@ -99,7 +95,12 @@ function setDate(dateStart: string, dateEnd: string) {
   setQueryDate(dateStart, dateEnd)
 }
 
-defineExpose({ setDate })
+/** 供父组件在配置就绪后启动 WebSocket（避免先按默认条件查一波再按配置改查） */
+function start() {
+  connect()
+}
+
+defineExpose({ setDate, start })
 
 // OEE 子指标
 const subMetrics = computed(() => {

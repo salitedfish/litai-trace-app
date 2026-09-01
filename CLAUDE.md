@@ -110,6 +110,7 @@ server/bin/run.sh {start|stop|status|debug} # 服务管理
 - `views/TraceQueryView.vue` — 追溯查询（产出码/投入码追溯链路）。工艺参数弹窗头部有「数采数据」按钮：以当前报工记录的设备 + 报工时间为中点±30min 跳转数采查询（经 `useDeviceDataNav` 传递，见下）。两个打开工艺参数的入口（追溯行「工艺参数」/ 提交记录「工艺参数」）都补齐了 `device_code` / `op_time` 供该按钮使用
 - `views/DeviceDataView.vue` — 数采查询（按设备/点位/时间段查 `datas` 表信号数据）。`watch(useDeviceDataNav().state.pending)` 消费追溯查询跳转预填：填充设备 + 起止时间后自动查询（点位清空查全部）
 - `views/dashboard/` — 智能生产看板；`DashboardView.vue` 只做布局 + 状态管理（WebSocket 连接、从看板配置读取查询日期/产线），各卡片拆在 `views/dashboard/components/`：`HeaderBar`（顶栏）、`OeeCard`（OEE 仪表盘）、`DeviceStatusCard`（产线设备实时状态）、`PlanActualOutputCard`（计划/实际产量，WebSocket 实时，三块：计划产量 / 实际产量 / 产量进度，按配置的产品型号过滤，统计日期取配置的时间范围、不配置默认当天）、`ProcessQualifiedRateCard`（工序合格率，WebSocket 实时）、`HourlyOutputCard`（小时产量统计，WebSocket 实时柱状图）、`HistoryDataCard`（历史数据，进看板时 HTTP 查一次：前两周不含今天、每天一列的表格（行=日均一次合格率/日均小时完成量/日完成量，列=日期），按配置的产品型号过滤）。看板标题 / 查询日期 / 产线 / 产品型号（数据源 `production_config_type` 表）等配置在 `views/dashboard/DashboardSettingsView.vue`（智能看板设置）维护，看板加载时经 `getDashboardConfig` 一并获取并应用。科技主题共用样式集中在 `views/dashboard/dashboard.theme.css`（`tech-panel` 四角括号面板 / `tech-panel-title` / `tech-badge` / `chart-card-placeholder` 预留占位 / 全局动画 keyframes），由 `DashboardView.vue` 引入，看板内组件共用
+- `views/dashboard2/` — 智能看板2，与看板1完全独立：`BoardView.vue` 做布局（两行两列：OEE / 产线设备实时状态 / 工序加工情况 / 预留）+ 状态管理（加载 `getDashboardConfig2` 配置后下发日期/产线并统一启动各卡片）；`BoardSettingsView.vue` 维护配置；`components/ProcessProductionCard.vue`（工序加工情况，WebSocket `/ws/process_production` 实时，经 `composables/useProcessProduction.ts` 管理；数据行列表复用 `ui/SeamlessScroll.vue` 通用无缝滚动组件，内容超出一屏按"单步式"循环滚动（每步平滑滚一行 + 停留，约 2 秒一行）、不足一屏静止；表头拆到滚动区外固定，表头/表体拆成两表、列宽用 `col-*` class 在 `th`/`td` 上共用保证对齐）
 - `composables/useServiceStatus.ts` — 共享服务状态 composable，模块级单例，自动检测后端健康状态
 - `composables/useDeviceDataNav.ts` — 追溯查询 → 数采查询的跨视图跳转预填（应用无 router、视图 `v-show` 常驻挂载，故用模块级单例状态传递）。导出 `useDeviceDataNav()`（返回 `state`：`device_code`/`start_time`/`end_time`/`pending`）、`navigateToDeviceData({device_code, report_time})`（以报工时间为中心 ±30min 计算起止时间并置 `pending=true`）、`formatDatetimeLocal`（`YYYY-MM-DDTHH:mm`，与数采查询搜索栏一致）。写方 TraceQueryView，读方 DeviceDataView
 - `api/trace-app.ts` — API 方法，使用 `httpWrap.ts` 的 `_get`/`_post`
@@ -120,6 +121,7 @@ server/bin/run.sh {start|stop|status|debug} # 服务管理
 - `CustomSelect.vue` — 下拉框，实心/描边两种样式，点击外部关闭，禁用状态。v-model 兼容
 - `ui/Toast.vue` — 自动消失的通知（成功/错误/警告/信息），默认 3 秒
 - `ui/ConfirmDialog.vue` — 返回 Promise\<boolean\> 的确认弹窗。通过 `utils/dialog.ts` 的 `showConfirm()` 使用
+- `ui/SeamlessScroll.vue` — 通用无缝循环滚动组件（看板类列表自动滚动复用）：内容经默认 slot 传入，组件内双份渲染 + 单步式滚动——每 `moveMs` 平滑滚一行、停 `waitMs`，合计约 2 秒一行；每次位移正好一行（整数像素，无亚像素抖动）、滚动有缓动过渡、其余时间静止，比连续匀速 CSS 动画在低端设备上更丝滑省电。Props：`moveMs`（滚一行动画时长，默认 600）、`waitMs`（到位停留时长，默认 1400）、`hover`（悬停暂停，默认 true）；自动测量内容高度/行高，**不足一屏静止不滚动**；容器高度由使用方 class 控制（如 `flex-1 min-h-0`）；**使用方需保证行高为整数**（内容行 `line-height` 用整数 px，否则位移出现亚像素抖动）；滚动内容项勿用 margin（两份内容接缝会跳变），用 padding 代替；有表头场景需把表头拆到滚动区外固定，且列宽 class 须 `th`/`td` 共用（见 `ProcessProductionCard` 的 `col-*` 用法）
 
 **开发服务器**：
 - Vite 在 `0.0.0.0:8081`

@@ -6,6 +6,7 @@ from trace_app.handlers.websocket_handler.endpoints.oee import OeeWsHandler
 from trace_app.handlers.websocket_handler.endpoints.process_quality import ProcessQualityWsHandler
 from trace_app.handlers.websocket_handler.endpoints.hourly_output import HourlyOutputWsHandler
 from trace_app.handlers.websocket_handler.endpoints.plan_actual_output import PlanActualOutputWsHandler
+from trace_app.handlers.websocket_handler.endpoints.process_production import ProcessProductionWsHandler
 
 url = [
     (r'/ws/oee', OeeWsHandler),
@@ -13,4 +14,5 @@ url = [
     (r'/ws/process_quality', ProcessQualityWsHandler),
     (r'/ws/hourly_output', HourlyOutputWsHandler),
     (r'/ws/plan_actual_output', PlanActualOutputWsHandler),
+    (r'/ws/process_production', ProcessProductionWsHandler),
 ]

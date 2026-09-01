@@ -33,15 +33,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onUnmounted } from 'vue'
 import { useProcessQuality } from '../../../composables/useProcessQuality'
 
-// ========== WebSocket 工序合格率（组件自管理） ==========
+// ========== WebSocket 工序合格率（组件自管理，父组件配置就绪后 start 启动） ==========
 const { processQuality, connected, connect, disconnect, setQueryDate } = useProcessQuality()
-
-onMounted(() => {
-  connect()
-})
 
 onUnmounted(() => {
   disconnect()
@@ -52,7 +48,12 @@ function setDate(dateStart: string, dateEnd: string) {
   setQueryDate(dateStart, dateEnd)
 }
 
-defineExpose({ setDate })
+/** 供父组件在配置就绪后启动 WebSocket（避免先按默认条件查一波再按配置改查） */
+function start() {
+  connect()
+}
+
+defineExpose({ setDate, start })
 
 // 工序合格率列表
 const items = computed(() => processQuality.value)

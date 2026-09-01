@@ -1,6 +1,7 @@
 <template>
   <!-- 全屏看板模式 -->
   <DashboardView v-if="currentView === 'dashboard'" @exit="currentView = 'home'" />
+  <BoardView v-if="currentView === 'dashboard2'" @exit="currentView = 'home'" />
 
   <!-- 正常布局 -->
   <div v-else class="flex h-screen overflow-hidden bg-background dot-pattern relative">
@@ -15,6 +16,7 @@
         <TraceQueryView v-show="currentView === 'history'" />
         <DeviceDataView v-show="currentView === 'device_data'" />
         <DashboardSettingsView v-show="currentView === 'dashboard_settings'" />
+        <BoardSettingsView v-show="currentView === 'dashboard2_settings'" />
       </main>
     </div>
   </div>
@@ -29,6 +31,8 @@ import TraceQueryView from './views/TraceQueryView.vue'
 import DeviceDataView from './views/DeviceDataView.vue'
 import DashboardView from './views/dashboard/DashboardView.vue'
 import DashboardSettingsView from './views/dashboard/DashboardSettingsView.vue'
+import BoardView from './views/dashboard2/BoardView.vue'
+import BoardSettingsView from './views/dashboard2/BoardSettingsView.vue'
 import { registerServiceWorker } from './registerServiceWorker'
 
 const isSidebarOpen = ref(true)

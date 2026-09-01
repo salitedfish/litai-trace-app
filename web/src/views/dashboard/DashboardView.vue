@@ -21,15 +21,21 @@
 
     <!-- 主体 -->
     <main class="dashboard-main">
+      <!-- 配置加载中：等配置获取完再加载看板 -->
+      <div v-if="!configReady" class="board-loading">
+        <div class="board-loading-spinner"></div>
+        <span class="board-loading-text">正在加载看板配置...</span>
+      </div>
+
       <!-- 图表行 1：OEE / 产线设备 / 计划/实际产量 -->
-      <section class="charts-row">
+      <section v-show="configReady" class="charts-row">
         <OeeCard ref="oeeCardRef" />
-        <DeviceStatusCard class="col-span-2" :line-code="selectedLine" />
+        <DeviceStatusCard ref="deviceStatusCardRef" class="col-span-2" :line-code="selectedLine" />
         <PlanActualOutputCard ref="planActualOutputCardRef" />
       </section>
 
       <!-- 图表行 2：工序合格率 / 小时产量统计+历史数据 / 预留 -->
-      <section class="charts-row">
+      <section v-show="configReady" class="charts-row">
         <ProcessQualifiedRateCard ref="processQualityCardRef" />
         <div class="col-span-2 stacked-col">
           <HourlyOutputCard ref="hourlyOutputCardRef" />
@@ -70,8 +76,11 @@ const today = new Date().toISOString().slice(0, 10)
 const startDate = ref(today)
 const endDate = ref(today)
 const selectedLine = ref('')
+// 配置是否已获取完（在此之前显示加载中，卡片不启动）
+const configReady = ref(false)
 
 const oeeCardRef = ref<InstanceType<typeof OeeCard>>()
+const deviceStatusCardRef = ref<InstanceType<typeof DeviceStatusCard>>()
 const processQualityCardRef = ref<InstanceType<typeof ProcessQualifiedRateCard>>()
 const hourlyOutputCardRef = ref<InstanceType<typeof HourlyOutputCard>>()
 const planActualOutputCardRef = ref<InstanceType<typeof PlanActualOutputCard>>()
@@ -117,6 +126,15 @@ onMounted(async () => {
 
   // 历史数据：进看板时查一次（前两周，按配置的产品型号过滤）
   historyDataCardRef.value?.load(configProductType)
+
+  // 配置就绪后统一启动各卡片（WS connect + 设备查询），日期/产品型号已先下发
+  oeeCardRef.value?.start()
+  processQualityCardRef.value?.start()
+  hourlyOutputCardRef.value?.start()
+  planActualOutputCardRef.value?.start()
+  deviceStatusCardRef.value?.start()
+
+  configReady.value = true
 })
 </script>
 
@@ -240,6 +258,8 @@ onMounted(async () => {
 /* ========== 图表行 ========== */
 .charts-row {
   @apply grid grid-cols-4 gap-3 flex-1 min-h-0;
+  /* 行高锁定为容器高度：minmax(0, 1fr) 的最小值必须是 0，否则 1fr 隐含 min:auto 会被卡片内容撑高、内部滚动失效 */
+  grid-auto-rows: minmax(0, 1fr);
 }
 
 /* ========== 竖排两卡容器 ========== */

@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import api from '../../../api/trace-app'
 import { useDeviceStatus, STATUS_NAMES } from '../../../composables/useDeviceStatus'
 import deviceDetectOff from '../../../assets/device_status/检测(关机).png'
@@ -110,10 +110,13 @@ watch(() => props.lineCode, () => {
   loadLineDevices()
 })
 
-onMounted(() => {
+/** 供父组件在配置就绪后启动（连接设备状态 WS + 加载产线设备），避免线码未配置时空查 */
+function start() {
   connectDeviceStatus()
   loadLineDevices()
-})
+}
+
+defineExpose({ start })
 
 onUnmounted(() => {
   disconnectDeviceStatus()

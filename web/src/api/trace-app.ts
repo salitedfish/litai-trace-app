@@ -33,6 +33,11 @@ export default {
   queryHistoryOutput: (productTypes: string[]) =>
     _post('api/trace_app/dashboard/history_output', { product_types: productTypes }),
 
+  // 智能看板2配置（独立于看板1）
+  getDashboardConfig2: () => _get('api/trace_app/dashboard_2/config'),
+  saveDashboardConfig2: (params: { title: string, start_date?: string, end_date?: string, workshop_code?: string, product_type?: string[] }) =>
+    _post('api/trace_app/dashboard_2/config', params),
+
   // 生产基础配置
   queryRoutingList: () => _post('api/trace_app/base_config/routing_list'),
   queryRoutingProcesses: (routingCode: string) =>

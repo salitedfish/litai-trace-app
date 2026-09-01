@@ -48,10 +48,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { useHourlyOutput } from '../../../composables/useHourlyOutput'
 
-// ========== WebSocket 小时产量（组件自管理） ==========
+// ========== WebSocket 小时产量（组件自管理，父组件配置就绪后 start 启动） ==========
 const {
   hourlyOutput,
   connected,
@@ -63,10 +63,6 @@ const {
 
 // 当前生效的产品型号过滤（用于头部展示；空数组表示全部产品）
 const productTypes = ref<string[]>([])
-
-onMounted(() => {
-  connect()
-})
 
 onUnmounted(() => {
   disconnect()
@@ -83,7 +79,12 @@ function setProductType(types: string[]) {
   productTypes.value = Array.isArray(types) ? types.slice() : []
 }
 
-defineExpose({ setDate, setProductType })
+/** 供父组件在配置就绪后启动 WebSocket（避免先按默认条件查一波再按配置改查） */
+function start() {
+  connect()
+}
+
+defineExpose({ setDate, setProductType, start })
 
 // 柱状图数据：按数量归一化为高度百分比（峰值最高）
 const bars = computed(() => {

@@ -4,6 +4,7 @@ from trace_app.handlers.http_handler.handler import SampleHandler
 from trace_app.handlers.http_handler.trace_handler import TraceHandler
 from trace_app.handlers.http_handler.device_data_handler import DeviceDataHandler
 from trace_app.handlers.http_handler.dashboard_handler import DashboardHandler
+from trace_app.handlers.http_handler.dashboard2_handler import Dashboard2Handler
 from trace_app.handlers.http_handler.base_config_handler import BaseConfigHandler
 from trace_app.utils.swagger_utils import generate_handler_classes
 
@@ -13,6 +14,7 @@ r.register(SampleHandler)
 r.register(TraceHandler)
 r.register(DeviceDataHandler)
 r.register(DashboardHandler)
+r.register(Dashboard2Handler)
 r.register(BaseConfigHandler)
 
 # SampleHandler（示例/工具接口，无数据查询）
@@ -41,6 +43,12 @@ for path, handler_cls, methods in generate_handler_classes(DeviceDataHandler):
 #   /api/trace_app/dashboard/config（GET）  获取看板配置（标题等）
 #   /api/trace_app/dashboard/config（POST） 保存看板配置
 for path, handler_cls, methods in generate_handler_classes(DashboardHandler):
+    r.register(handler_cls)
+
+# Dashboard2Handler（智能看板2配置，查/存 {org}_trace_app.dashboard_config_2 看板2配置集合，与看板1独立）
+#   /api/trace_app/dashboard_2/config（GET）  获取看板2配置（标题等）
+#   /api/trace_app/dashboard_2/config（POST） 保存看板2配置
+for path, handler_cls, methods in generate_handler_classes(Dashboard2Handler):
     r.register(handler_cls)
 
 # BaseConfigHandler（生产基础配置查询，查 {org}_config 下工艺路线/工序信息表 + idi_{org}.web_layout_application 布局表）

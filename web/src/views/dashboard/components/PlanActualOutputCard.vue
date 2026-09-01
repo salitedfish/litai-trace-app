@@ -77,10 +77,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { usePlanActualOutput } from '../../../composables/usePlanActualOutput'
 
-// ========== WebSocket 计划/实际产量（组件自管理） ==========
+// ========== WebSocket 计划/实际产量（组件自管理，父组件配置就绪后 start 启动） ==========
 const {
   planActual,
   connected,
@@ -96,10 +96,6 @@ const productTypes = ref<string[]>([])
 // 当前查询日期区间（setDate 传入；为空表示未配置，默认当天）
 const queryStart = ref('')
 const queryEnd = ref('')
-
-onMounted(() => {
-  connect()
-})
 
 onUnmounted(() => {
   disconnect()
@@ -118,7 +114,12 @@ function setProductType(types: string[]) {
   productTypes.value = Array.isArray(types) ? types.slice() : []
 }
 
-defineExpose({ setDate, setProductType })
+/** 供父组件在配置就绪后启动 WebSocket（避免先按默认条件查一波再按配置改查） */
+function start() {
+  connect()
+}
+
+defineExpose({ setDate, setProductType, start })
 
 /** 三块统计展示数据 */
 const planData = computed(() => ({
