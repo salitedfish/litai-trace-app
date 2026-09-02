@@ -12,6 +12,7 @@ from trace_app.entity.response_model import (
     InputCodeQueryRequest,
     ProcessParamRequest,
     SubmissionRecordRequest,
+    InspectionRecordRequest,
 )
 from trace_app.utils.swagger_utils import swagger_doc
 from trace_app.utils.collection_utils import (
@@ -19,6 +20,7 @@ from trace_app.utils.collection_utils import (
     get_process_coll,
     get_gycs_coll,
     get_process_params_config_coll,
+    get_inspection_records_coll,
     calc_check_result,
     enrich_device_names,
     enrich_user_names,
@@ -491,6 +493,67 @@ class TraceHandler(BaseHandler):
                     "procedure_name": r.get("procedure_name", ""),
                     "timestamp": str(r.get("timestamp", "")),
                 })
+
+            self.send_response(Response.success(result, "查询成功"))
+
+        except Exception:
+            get_logger().error(traceback.format_exc())
+            self.send_response(Response.fail("查询失败，服务器内部错误"))
+
+    # =====================================================================
+    # 检验单查询
+    # 根据工单编码查 {org}_manual_trace.inspection_records 表，获取该次报工
+    # 关联的检验单（由 manual_line_general_traceability 报工时落库）
+    # =====================================================================
+
+    @request_mapping('/trace/query_inspection_record', method='post', description='根据工单编码查询检验单')
+    @swagger_doc(
+        tags=["追溯查询"],
+        summary="查询检验单",
+        description="输入 workorder_code，查询该次报工关联的检验单记录",
+        request_model=InspectionRecordRequest,
+    )
+    @loginrequired
+    async def query_inspection_record(self):
+        """查询检验单 — 该次报工关联的检验单记录"""
+        try:
+            if not self.data or 'workorder_code' not in self.data:
+                self.send_response(Response.fail("请传入工单编码 workorder_code"))
+                return
+            workorder_code = self.data['workorder_code'].strip()
+            if not workorder_code:
+                self.send_response(Response.fail("工单编码不能为空"))
+                return
+
+            inspection_coll = await get_inspection_records_coll()
+            record = await inspection_coll.find_one(
+                {"workorder_code": workorder_code, "is_delete": {"$ne": True}},
+                sort=[("op_time", -1)]
+            )
+            if not record:
+                self.send_response(Response.success(None, "该报工无检验单记录"))
+                return
+
+            result = {
+                "workorder_code": record.get("workorder_code", ""),
+                "raw_workorder_code": record.get("raw_workorder_code", ""),
+                "product_code": record.get("product_code", ""),
+                "routing_code": record.get("routing_code", ""),
+                "process_code": record.get("process_code", ""),
+                "process_name": record.get("process_name", ""),
+                "produce_unit_code": record.get("produce_unit_code", ""),
+                "device_code": record.get("device_code", ""),
+                "items": record.get("items", []),
+                "is_qualified": record.get("is_qualified", False),
+                "operator": record.get("operator", ""),
+                "op_time": str(record.get("op_time", "")),
+                "created_at": str(record.get("created_at", "")),
+            }
+
+            # 操作人工号转昵称
+            operator = result.get("operator", "") or ""
+            if operator:
+                await enrich_user_names({operator}, [result])
 
             self.send_response(Response.success(result, "查询成功"))
 

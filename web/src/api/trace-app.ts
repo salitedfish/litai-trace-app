@@ -9,6 +9,7 @@ export default {
   queryInputs: (workorderCode: string) => _post('api/trace_app/trace/query_inputs', { workorder_code: workorderCode }),
   queryOutputsByInput: (inputCode: string) => _post('api/trace_app/trace/query_outputs_by_input', { input_code: inputCode }),
   queryProcessParams: (workorderCode: string) => _post('api/trace_app/trace/query_process_params', { workorder_code: workorderCode }),
+  queryInspectionRecord: (workorderCode: string) => _post('api/trace_app/trace/query_inspection_record', { workorder_code: workorderCode }),
   querySubmissionRecords: (qrCode: string, procedureCode: string, deviceCode: string) =>
     _post('api/trace_app/trace/query_submission_records', { qr_code: qrCode, procedure_code: procedureCode, device_code: deviceCode }),
 

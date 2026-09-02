@@ -88,9 +88,10 @@
               <td class="px-3 py-2.5"><span :class="checkResultClass(step.check_result)">{{ step.check_result || '-' }}</span></td>
               <td class="px-3 py-2.5 text-sm">{{ step.operator }}</td>
               <td class="px-3 py-2.5 text-center">
-                <div class="flex items-center justify-center gap-1.5">
+                <div class="grid grid-cols-2 gap-1.5">
                   <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-accent/10 text-accent hover:bg-accent/20 transition-colors" @click="openInputModal(step)">查看投入</button>
                   <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors" @click="openProcessParamModal(step)">工艺参数</button>
+                  <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 transition-colors" @click="openInspectionModal(step)">检验单</button>
                   <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200 transition-colors" @click="openSubmissionModal(step)">提交记录</button>
                 </div>
               </td>
@@ -249,14 +250,86 @@
                     <td class="px-3 py-2.5">{{ rec.operator }}</td>
                     <td class="px-3 py-2.5"><span class="text-xs" :class="checkResultClass(rec.check_result)">{{ rec.check_result || '-' }}</span></td>
                     <td class="px-3 py-2.5 text-center">
-                      <div class="flex items-center justify-center gap-1.5">
+                      <div class="grid grid-cols-2 gap-1.5">
                         <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-accent/10 text-accent hover:bg-accent/20 transition-colors" @click="openInputFromSub(rec)">查看投入</button>
                         <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors" @click="openProcessParamFromSub(rec)">工艺参数</button>
+                        <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 transition-colors" @click="openInspectionFromSub(rec)">检验单</button>
                       </div>
                     </td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 检验单弹窗 -->
+    <transition name="modal-fade">
+      <div v-if="inspectionModalVisible" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/30" @click.self="closeInspectionModal">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden transform transition-all border border-border flex flex-col m-4">
+          <div class="px-6 py-4 border-b border-border/50 flex items-center justify-between shrink-0 bg-muted/10">
+            <div>
+              <h3 class="text-base font-bold text-foreground">检验单</h3>
+              <p class="text-xs text-muted-foreground mt-0.5">
+                {{ inspectionStep?.procedure_name || '工序' }}
+                <span v-if="inspectionStep?.procedure_code" class="ml-1 font-mono">({{ inspectionStep?.procedure_code }})</span>
+                <span class="ml-2">产出: <code class="bg-muted px-1 py-0.5 rounded font-mono text-xs">{{ inspectionStep?.qr_code }}</code></span>
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span v-if="inspectionData && inspectionData.is_qualified != null"
+                class="text-xs font-bold px-3 py-1 rounded-full"
+                :class="inspectionData.is_qualified ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'">
+                {{ inspectionData.is_qualified ? '整体合格' : '存在不合格项' }}
+              </span>
+              <button class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" @click="closeInspectionModal">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="overflow-auto flex-1 p-6">
+            <div v-if="inspectionLoading" class="flex items-center justify-center gap-2 text-sm text-muted-foreground py-8">
+              <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              加载中...
+            </div>
+            <div v-else-if="inspectionError" class="text-sm text-red-500 py-4 text-center">{{ inspectionError }}</div>
+            <div v-else-if="!inspectionData" class="text-sm text-muted-foreground py-8 text-center">该报工无检验单记录</div>
+            <div v-else>
+              <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr class="border-b border-border/50 text-xs text-muted-foreground">
+                    <th class="px-3 py-2.5 font-medium w-14 text-center">#</th>
+                    <th class="px-3 py-2.5 font-medium">检验项名称</th>
+                    <th class="px-3 py-2.5 font-medium w-28">类型</th>
+                    <th class="px-3 py-2.5 font-medium w-36">数据范围</th>
+                    <th class="px-3 py-2.5 font-medium">填写值</th>
+                    <th class="px-3 py-2.5 font-medium w-24 text-center">结果</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border/30">
+                  <tr v-for="(item, i) in inspectionItems" :key="i" class="hover:bg-muted/30">
+                    <td class="px-3 py-2.5 text-center text-muted-foreground">{{ i + 1 }}</td>
+                    <td class="px-3 py-2.5">
+                      <span class="font-medium">{{ item.item_name }}</span>
+                      <span class="ml-1 font-mono text-[10px] text-muted-foreground">{{ item.item_code }}</span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                      <span class="text-xs" :class="item.inspect_type === 'range' ? 'text-amber-600' : 'text-blue-600'">{{ item.inspect_type === 'range' ? '数据范围' : '是否合格' }}</span>
+                    </td>
+                    <td class="px-3 py-2.5 font-mono text-xs">{{ item.range_value || '-' }}</td>
+                    <td class="px-3 py-2.5 font-mono text-xs">{{ item.input_value ?? '-' }}</td>
+                    <td class="px-3 py-2.5 text-center">
+                      <span class="text-xs font-medium" :class="item.is_qualified ? 'text-teal-600' : 'text-red-600'">{{ item.is_qualified ? '合格' : '不合格' }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="flex items-center justify-between mt-4 text-xs text-muted-foreground px-1">
+                <span>操作人: {{ inspectionData.operator || '-' }}</span>
+                <span>检验时间: {{ fmtTime(inspectionData.op_time) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -321,7 +394,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject, defineComponent, h } from 'vue'
+import { ref, inject, computed, defineComponent, h } from 'vue'
 import type { Ref } from 'vue'
 import api from '../api/trace-app'
 import { showToast } from '../utils/dialog'
@@ -351,6 +424,14 @@ const paramStep = ref<any>(null)
 const paramData = ref<any[]>([])
 const paramLoading = ref(false)
 const paramError = ref('')
+
+// 检验单弹窗
+const inspectionModalVisible = ref(false)
+const inspectionStep = ref<any>(null)
+const inspectionData = ref<any>(null)
+const inspectionLoading = ref(false)
+const inspectionError = ref('')
+const inspectionItems = computed<any[]>(() => inspectionData.value?.items || [])
 
 // 提交记录弹窗
 const subModalVisible = ref(false)
@@ -537,6 +618,41 @@ const openProcessParamFromSub = (rec: any) => {
   }
   closeSubModal()
   openProcessParamModal(step)
+}
+
+// ========== 检验单弹窗 ==========
+const openInspectionModal = async (step: any) => {
+  inspectionStep.value = step
+  inspectionModalVisible.value = true
+  inspectionLoading.value = true
+  inspectionError.value = ''
+  inspectionData.value = null
+  try {
+    const res = await api.queryInspectionRecord(step.workorder_code)
+    inspectionData.value = res.data || null
+  } catch (err: any) {
+    inspectionError.value = '加载失败: ' + (err?.message || '未知错误')
+  } finally {
+    inspectionLoading.value = false
+  }
+}
+
+const closeInspectionModal = () => {
+  inspectionModalVisible.value = false
+  inspectionStep.value = null
+  inspectionData.value = null
+}
+
+// 从提交记录弹窗打开检验单弹窗：先关提交记录，再开检验单，避免 z-index 遮挡
+const openInspectionFromSub = (rec: any) => {
+  const step = {
+    workorder_code: rec.workorder_code,
+    procedure_name: subStep.value?.procedure_name,
+    procedure_code: subStep.value?.procedure_code,
+    qr_code: subStep.value?.qr_code,
+  }
+  closeSubModal()
+  openInspectionModal(step)
 }
 
 // ========== 工具 ==========

@@ -65,6 +65,15 @@ async def get_process_params_config_coll():
     return await get_collection_handler("process_params_config", _get_db_name("manual_trace"))
 
 
+async def get_inspection_records_coll():
+    """获取检验单记录表（inspection_records）集合句柄
+
+    检验单由 manual_line_general_traceability 落库，workorder_code 关联报工的
+    完整追溯工单号（qr_workorder_code），存放在 {org}_manual_trace 库，只读。
+    """
+    return await get_collection_handler("inspection_records", _get_db_name("manual_trace"))
+
+
 async def get_datas_coll():
     """获取数采数据表（datas）集合句柄"""
     idi_db = f"idi_{get_organization()}"

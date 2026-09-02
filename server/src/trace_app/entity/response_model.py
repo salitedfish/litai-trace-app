@@ -143,6 +143,44 @@ class ProcessParamResponse(BaseResponse):
     data: List[ProcessParamItem]  # 工艺参数记录列表
 
 
+# ==================== 检验单查询 ====================
+
+class InspectionRecordRequest(TypedDict):
+    """检验单查询请求参数"""
+    workorder_code: str  # 工单编码
+
+
+class InspectionRecordItemDetail(TypedDict):
+    """检验单中的单项检验记录"""
+    item_code: str  # 检验项编码
+    item_name: str  # 检验项名称
+    inspect_type: str  # 检验类型（range=数据范围 / qualified=是否合格）
+    range_value: str  # 数据范围（最小值-最大值，range 类型才有值）
+    input_value: str  # 填写值
+    is_qualified: bool  # 该项是否合格
+
+
+class InspectionRecordItem(TypedDict):
+    """检验单记录"""
+    workorder_code: str  # 工单编码（与报工追溯记录关联）
+    raw_workorder_code: str  # 原始工单号（不含时间戳后缀）
+    product_code: str  # 产品编码
+    routing_code: str  # 工艺路线编码
+    process_code: str  # 工序编码
+    process_name: str  # 工序名称
+    produce_unit_code: str  # 生产单元编码
+    device_code: str  # 设备编码
+    items: List[InspectionRecordItemDetail]  # 检验明细快照
+    is_qualified: bool  # 整体是否合格
+    operator: str  # 操作人
+    op_time: str  # 检验时间
+    created_at: str  # 创建时间
+
+
+class InspectionRecordResponse(BaseResponse):
+    data: InspectionRecordItem  # 检验单记录（无则 null）
+
+
 # ==================== 智能看板配置 ====================
 
 class DashboardConfigRequest(TypedDict):
