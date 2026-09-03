@@ -23,12 +23,11 @@
       </div>
     </div>
 
-    <div v-if="!selected" class="tech-placeholder">请选择产线</div>
-    <div v-else-if="loading" class="tech-placeholder">
+    <div v-if="loading" class="tech-placeholder">
       <span class="placeholder-blink">▮</span>&nbsp;加载中...
     </div>
     <div v-else-if="error" class="tech-placeholder">{{ error }}</div>
-    <div v-else-if="units.length == 0" class="tech-placeholder">该产线暂无设备数据</div>
+    <div v-else-if="units.length == 0" class="tech-placeholder">暂无设备数据</div>
     <div v-else class="processes-wrap">
       <div class="devices-grid tech-scroll">
         <div
@@ -77,26 +76,18 @@ const {
   disconnect: disconnectDeviceStatus,
 } = useDeviceStatus()
 
-// ========== 产线设备查询（组件自管理，切换产线重新加载） ==========
+// ========== 产线设备查询（组件自管理，切换产线重新加载；产线空 = 全部产线） ==========
 const title = ref('')
 const units = ref<LineUnit[]>([])
 const loading = ref(false)
 const error = ref('')
 
-const selected = computed(() => !!props.lineCode)
-
 const loadLineDevices = async () => {
-  if (!props.lineCode) {
-    title.value = ''
-    units.value = []
-    error.value = ''
-    return
-  }
   loading.value = true
   error.value = ''
   try {
     const res = await api.queryLineDevices(props.lineCode)
-    title.value = res.data?.workshop_name || ''
+    title.value = res.data?.workshop_name || '全部产线'
     units.value = res.data?.units || []
   } catch (err: any) {
     console.error('加载产线设备失败:', err)
@@ -110,7 +101,7 @@ watch(() => props.lineCode, () => {
   loadLineDevices()
 })
 
-/** 供父组件在配置就绪后启动（连接设备状态 WS + 加载产线设备），避免线码未配置时空查 */
+/** 供父组件在配置就绪后启动（连接设备状态 WS + 加载产线设备）；产线空则加载全部产线 */
 function start() {
   connectDeviceStatus()
   loadLineDevices()

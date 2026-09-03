@@ -280,26 +280,25 @@ class BaseConfigHandler(BaseHandler):
     @swagger_doc(
         tags=["生产基础配置"],
         summary="获取产线下生产单元及设备",
-        description="按车间代号（产线）查询布局表，按生产单元分组返回设备列表",
+        description="按车间代号（产线）查询布局表，按生产单元分组返回设备列表；"
+                    "车间代号可空，为空时返回全部产线",
         request_model=LineDevicesRequest,
         response_model=LineDevicesResponse,
     )
     @loginrequired
     async def query_line_devices(self):
-        """查询产线下的生产单元及设备，用于看板展示"""
+        """查询产线下的生产单元及设备，用于看板展示（产线编码为空 = 全部产线）"""
         try:
-            if not self.data or not self.data.get("workshop_code"):
-                self.send_response(Response.fail("请传入产线编码 workshop_code"))
-                return
-
-            workshop_code = self.data["workshop_code"].strip()
-            if not workshop_code:
-                self.send_response(Response.fail("产线编码不能为空"))
-                return
+            workshop_code = ""
+            if self.data and self.data.get("workshop_code"):
+                workshop_code = str(self.data["workshop_code"]).strip()
 
             layout_coll = await get_web_layout_application_coll()
+            query_filter = {}
+            if workshop_code:
+                query_filter["车间代号"] = workshop_code
             cursor = layout_coll.find(
-                {"车间代号": workshop_code},
+                query_filter,
                 projection={"车间名称": 1, "生产单元代号": 1, "生产单元名称": 1,
                             "设备编码": 1, "设备名称": 1, "设备类型": 1}
             ).sort("设备顺序", 1)
@@ -307,7 +306,8 @@ class BaseConfigHandler(BaseHandler):
             workshop_name = ""
             unit_map = {}
             async for rec in cursor:
-                if not workshop_name:
+                # 指定产线时回填该产线名称；空产线（全部产线）不填单一车间名，前端显示"全部产线"
+                if not workshop_name and workshop_code:
                     workshop_name = rec.get("车间名称", "")
                 unit_code = rec.get("生产单元代号", "")
                 if not unit_code:

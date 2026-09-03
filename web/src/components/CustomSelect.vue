@@ -12,6 +12,15 @@
       <span :class="['block min-w-0 flex-1 truncate', !selectedOption ? 'text-muted-foreground' : 'text-foreground']">
         {{ selectedOption ? selectedOption.label : placeholder }}
       </span>
+      <!-- 清空按钮（clearable 且有值时显示） -->
+      <svg
+        v-if="clearable && modelValue !== '' && !disabled"
+        class="w-4 h-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 ml-2"
+        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        @click.stop="handleClear"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
       <svg
         class="w-4 h-4 text-muted-foreground transition-transform duration-200 shrink-0 ml-2"
         :class="{ 'rotate-180': isOpen }"
@@ -75,11 +84,14 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
   variant?: 'solid' | 'outline'
   searchable?: boolean
+  /** 是否显示清空按钮（点 ✕ 将值清空为 ''） */
+  clearable?: boolean
 }>(), {
   placeholder: '请选择...',
   disabled: false,
   variant: 'solid',
   searchable: false,
+  clearable: false,
 })
 
 const emit = defineEmits<{
@@ -120,6 +132,12 @@ const selectOption = (opt: any) => {
   emit('update:modelValue', opt.value)
   emit('change', opt.value)
   isOpen.value = false
+}
+
+/** 点击清空按钮：值置空（占位展示），并通知父组件 */
+const handleClear = () => {
+  emit('update:modelValue', '')
+  emit('change', '')
 }
 
 const handleClickOutside = (e: MouseEvent) => {

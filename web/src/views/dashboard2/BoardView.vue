@@ -33,15 +33,10 @@
         <DeviceStatusCard ref="deviceStatusCardRef" :line-code="selectedLine" />
       </section>
 
-      <!-- 第二行：工序加工情况 / 预留 -->
+      <!-- 第二行：工序加工情况 / 检验项不合格占比 -->
       <section v-show="configReady" class="charts-row2">
         <ProcessProductionCard ref="processProductionCardRef" />
-        <div class="tech-panel chart-card-placeholder">
-          <span class="placeholder-text">
-            <span class="placeholder-blink">▮</span>
-            预留
-          </span>
-        </div>
+        <UnqualifiedPieCard ref="pieCardRef" :workshop-name="workshopName" />
       </section>
     </main>
 
@@ -57,30 +52,36 @@ import HeaderBar from '../dashboard/components/HeaderBar.vue'
 import OeeCard from '../dashboard/components/OeeCard.vue'
 import DeviceStatusCard from '../dashboard/components/DeviceStatusCard.vue'
 import ProcessProductionCard from './components/ProcessProductionCard.vue'
+import UnqualifiedPieCard from './components/UnqualifiedPieCard.vue'
 import '../dashboard/dashboard.theme.css'
 
 const emit = defineEmits<{ (e: 'exit'): void }>()
 
 const pageTitle = ref('智能看板2')
 
-// ========== 看板参数（日期 / 产线，来自看板2配置，加载时一并获取） ==========
+// ========== 看板参数（日期 / 产线 / 产品型号，来自看板2配置，加载时一并获取） ==========
 const today = new Date().toISOString().slice(0, 10)
 const startDate = ref(today)
 const endDate = ref(today)
 const selectedLine = ref('')
+const productTypes = ref<string[]>([])
+// 选中产线的展示名（供饼图卡头部标签，配置产线为空时保持空=全部产线）
+const workshopName = ref('')
 // 配置是否已获取完（在此之前显示加载中，卡片不启动）
 const configReady = ref(false)
 
 const oeeCardRef = ref<InstanceType<typeof OeeCard>>()
 const deviceStatusCardRef = ref<InstanceType<typeof DeviceStatusCard>>()
 const processProductionCardRef = ref<InstanceType<typeof ProcessProductionCard>>()
+const pieCardRef = ref<InstanceType<typeof UnqualifiedPieCard>>()
 
 onMounted(async () => {
-  // 加载看板2配置（标题 / 查询日期 / 产线），与看板1完全独立
+  // 加载看板2配置（标题 / 查询日期 / 产线 / 产品型号），与看板1完全独立
   let configTitle = ''
   let configStartDate = ''
   let configEndDate = ''
   let configWorkshopCode = ''
+  let configProductType: string[] = []
   try {
     const res = await api.getDashboardConfig2()
     const cfg = res.data || {}
@@ -88,6 +89,7 @@ onMounted(async () => {
     configStartDate = cfg.start_date || ''
     configEndDate = cfg.end_date || ''
     configWorkshopCode = cfg.workshop_code || ''
+    configProductType = Array.isArray(cfg.product_type) ? cfg.product_type.slice() : []
   } catch (_) {
     // 使用默认配置
   }
@@ -96,6 +98,7 @@ onMounted(async () => {
   if (configStartDate) startDate.value = configStartDate
   if (configEndDate) endDate.value = configEndDate
   if (configWorkshopCode) selectedLine.value = configWorkshopCode
+  productTypes.value = configProductType
 
   // 配置了查询日期时，同步给 OEE / 工序加工情况查询
   if (configStartDate || configEndDate) {
@@ -108,8 +111,33 @@ onMounted(async () => {
   processProductionCardRef.value?.start()
   deviceStatusCardRef.value?.start()
 
+  // 饼图卡：按配置的日期 / 产线 / 产品型号统计不合格项占比（产线空 = 全部产线）
+  pieCardRef.value?.load({
+    start_date: startDate.value,
+    end_date: endDate.value,
+    workshop_code: selectedLine.value,
+    product_types: productTypes.value,
+  })
+
+  // 产线名解析仅用于饼图卡头部标签展示（产线空无需查），不阻塞看板启动，失败回退显示编码
+  if (configWorkshopCode) {
+    resolveWorkshopName(configWorkshopCode)
+  }
+
   configReady.value = true
 })
+
+/** 按产线编码查名称（异步补充显示，不进主流程），查不到回退显示编码 */
+async function resolveWorkshopName(code: string) {
+  try {
+    const lineRes = await api.queryLineList()
+    const line = (lineRes.data || []).find((l: any) => l.workshop_code == code)
+    workshopName.value = line?.workshop_name || code
+  } catch (err: any) {
+    console.error('解析产线名称失败:', err)
+    workshopName.value = code
+  }
+}
 </script>
 
 <style scoped>

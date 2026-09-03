@@ -156,6 +156,8 @@ class InspectionRecordItemDetail(TypedDict):
     item_name: str  # 检验项名称
     inspect_type: str  # 检验类型（range=数据范围 / qualified=是否合格）
     range_value: str  # 数据范围（最小值-最大值，range 类型才有值）
+    requirement: str  # 检验要求（操作指导文本，可选，空串/缺键=未填）
+    tool: str  # 检验工具（可选，空串/缺键=未填）
     input_value: str  # 填写值
     is_qualified: bool  # 该项是否合格
 
@@ -216,6 +218,27 @@ class HistoryOutputData(TypedDict):
 
 class HistoryOutputResponse(BaseResponse):
     data: HistoryOutputData  # 历史数据
+
+
+# ==================== 智能看板2 检验项不合格占比 ====================
+
+class UnqualifiedPieRequest(TypedDict):
+    """检验项不合格占比请求参数"""
+    start_date: str  # 开始日期（YYYY-MM-DD，可选，空为当天）
+    end_date: str  # 结束日期（YYYY-MM-DD，可选，空为当天）
+    workshop_code: str  # 产线编码（可选，空为全部产线）
+    product_types: List[str]  # 产品型号列表（可选，多选，空为不限）
+
+
+class UnqualifiedPieItem(TypedDict):
+    """单个检验项的不合格统计"""
+    item_code: str  # 检验项编码
+    item_name: str  # 检验项名称（取检验单快照，缺失时回退编码）
+    count: int  # 该检验项不合格次数
+
+
+class UnqualifiedPieResponse(BaseResponse):
+    data: List[UnqualifiedPieItem]  # 各检验项不合格计数（按次数降序）
 
 
 # ==================== 设备数采查询 ====================

@@ -304,6 +304,8 @@
                     <th class="px-3 py-2.5 font-medium">检验项名称</th>
                     <th class="px-3 py-2.5 font-medium w-28">类型</th>
                     <th class="px-3 py-2.5 font-medium w-36">数据范围</th>
+                    <th class="px-3 py-2.5 font-medium">检验要求</th>
+                    <th class="px-3 py-2.5 font-medium w-36">检验工具</th>
                     <th class="px-3 py-2.5 font-medium">填写值</th>
                     <th class="px-3 py-2.5 font-medium w-24 text-center">结果</th>
                   </tr>
@@ -319,6 +321,8 @@
                       <span class="text-xs" :class="item.inspect_type === 'range' ? 'text-amber-600' : 'text-blue-600'">{{ item.inspect_type === 'range' ? '数据范围' : '是否合格' }}</span>
                     </td>
                     <td class="px-3 py-2.5 font-mono text-xs">{{ item.range_value || '-' }}</td>
+                    <td class="px-3 py-2.5 text-xs text-muted-foreground whitespace-normal break-words">{{ item.requirement || '-' }}</td>
+                    <td class="px-3 py-2.5 text-xs text-muted-foreground whitespace-normal break-words">{{ item.tool || '-' }}</td>
                     <td class="px-3 py-2.5 font-mono text-xs">{{ item.input_value ?? '-' }}</td>
                     <td class="px-3 py-2.5 text-center">
                       <span class="text-xs font-medium" :class="item.is_qualified ? 'text-teal-600' : 'text-red-600'">{{ item.is_qualified ? '合格' : '不合格' }}</span>

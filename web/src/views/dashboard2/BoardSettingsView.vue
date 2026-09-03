@@ -47,9 +47,10 @@
             :options="lineOptions"
             :disabled="lineLoading"
             variant="outline"
+            clearable
             placeholder="请选择产线"
           />
-          <p class="text-xs text-muted-foreground">看板展示的产线，不选则看板不展示产线设备</p>
+          <p class="text-xs text-muted-foreground">看板展示的产线，不选则展示全部产线</p>
         </div>
 
         <div class="flex flex-col gap-2">
