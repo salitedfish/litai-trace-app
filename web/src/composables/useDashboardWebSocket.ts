@@ -70,8 +70,22 @@ export function useDashboardWebSocket() {
 
   const ws = useWebSocket(getWebSocketUrl())
 
+  // 待发送的查询日期（连接建立前设置的日期会在 onConnected 时补发）
+  let pendingDate: { start: string, end: string } | null = null
+
+  function setQueryDate(dateStart: string, dateEnd: string) {
+    pendingDate = { start: dateStart, end: dateEnd }
+    ws.send({ action: 'set_date', date_start: dateStart, date_end: dateEnd })
+  }
+
   function connect() {
     ws.connect({
+      onConnected: () => {
+        // 连接建立后补发日期，避免连接前设置时消息被丢弃（后端 provider 按连接重建，重连后也需重发）
+        if (pendingDate) {
+          ws.send({ action: 'set_date', date_start: pendingDate.start, date_end: pendingDate.end })
+        }
+      },
       handlers: {
         oee: (msg) => {
           oeeData.value = parseOeeMessage(msg as OeeMessage)
@@ -79,10 +93,6 @@ export function useDashboardWebSocket() {
         },
       },
     })
-  }
-
-  function setQueryDate(dateStart: string, dateEnd: string) {
-    ws.send({ action: 'set_date', date_start: dateStart, date_end: dateEnd })
   }
 
   return {
