@@ -102,7 +102,8 @@
     </div>
 
     <!-- 投入物料弹窗 -->
-    <transition name="modal-fade">
+    <Teleport to="body">
+      <transition name="modal-fade">
       <div v-if="inputModalVisible" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/30" @click.self="closeInputModal">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden transform transition-all border border-border flex flex-col m-4">
           <div class="px-6 py-4 border-b border-border/50 flex items-center justify-between shrink-0 bg-muted/10">
@@ -156,9 +157,11 @@
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- 工艺参数弹窗 -->
-    <transition name="modal-fade">
+    <Teleport to="body">
+      <transition name="modal-fade">
       <div v-if="paramModalVisible" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/30" @click.self="closeParamModal">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden transform transition-all border border-border flex flex-col m-4">
           <div class="px-6 py-4 border-b border-border/50 flex items-center justify-between shrink-0 bg-muted/10">
@@ -205,9 +208,11 @@
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- 提交记录弹窗 -->
-    <transition name="modal-fade">
+    <Teleport to="body">
+      <transition name="modal-fade">
       <div v-if="subModalVisible" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/30" @click.self="closeSubModal">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden transform transition-all border border-border flex flex-col m-4">
           <div class="px-6 py-4 border-b border-border/50 flex items-center justify-between shrink-0 bg-muted/10">
@@ -264,11 +269,13 @@
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- 检验单弹窗 -->
-    <transition name="modal-fade">
+    <Teleport to="body">
+      <transition name="modal-fade">
       <div v-if="inspectionModalVisible" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/30" @click.self="closeInspectionModal">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden transform transition-all border border-border flex flex-col m-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] overflow-hidden transform transition-all border border-border flex flex-col m-4">
           <div class="px-6 py-4 border-b border-border/50 flex items-center justify-between shrink-0 bg-muted/10">
             <div>
               <h3 class="text-base font-bold text-foreground">检验单</h3>
@@ -308,6 +315,7 @@
                     <th class="px-3 py-2.5 font-medium w-36">检验工具</th>
                     <th class="px-3 py-2.5 font-medium">填写值</th>
                     <th class="px-3 py-2.5 font-medium w-24 text-center">结果</th>
+                    <th class="px-3 py-2.5 font-medium w-28">不合格原因</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-border/30">
@@ -327,6 +335,12 @@
                     <td class="px-3 py-2.5 text-center">
                       <span class="text-xs font-medium" :class="item.is_qualified ? 'text-teal-600' : 'text-red-600'">{{ item.is_qualified ? '合格' : '不合格' }}</span>
                     </td>
+                    <td class="px-3 py-2.5">
+                      <button v-if="unqualifiedReasonCount(item) > 0"
+                        class="px-2.5 py-1 rounded-md text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors"
+                        @click="showUnqualifiedReasons(item)">查看原因 ({{ unqualifiedReasonCount(item) }})</button>
+                      <span v-else class="text-xs text-muted-foreground">-</span>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -339,9 +353,42 @@
         </div>
       </div>
     </transition>
+    </Teleport>
+
+    <!-- 不合格原因明细弹窗（检验单弹窗内逐项点击查看） -->
+    <Teleport to="body">
+      <transition name="modal-fade">
+      <div v-if="reasonDetailVisible" class="fixed inset-0 z-[1100] flex items-center justify-center bg-black/30" @click.self="closeUnqualifiedReasons">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[70vh] overflow-hidden transform transition-all border border-border flex flex-col m-4">
+          <div class="px-5 py-3.5 border-b border-border/50 flex items-center justify-between shrink-0 bg-muted/10">
+            <div>
+              <h3 class="text-base font-bold text-foreground">不合格原因</h3>
+              <p class="text-xs text-muted-foreground mt-0.5">
+                检验项: {{ reasonDetailItem?.item_name || '-' }}
+                <span v-if="reasonDetailItem?.item_code" class="ml-1 font-mono">({{ reasonDetailItem.item_code }})</span>
+              </p>
+            </div>
+            <button class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" @click="closeUnqualifiedReasons">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="overflow-auto p-5">
+            <div v-if="reasonDetailItem && unqualifiedReasonCount(reasonDetailItem) > 0" class="space-y-2">
+              <div v-for="(r, ri) in reasonDetailItem.unqualified_reasons" :key="ri" class="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+                <span class="text-sm text-foreground">{{ r?.reason_name || r?.reason_code || '-' }}</span>
+                <span v-if="r?.reason_code" class="font-mono text-[10px] text-muted-foreground">{{ r.reason_code }}</span>
+              </div>
+            </div>
+            <p v-else class="text-sm text-muted-foreground text-center py-4">该检验项无不合格原因</p>
+          </div>
+        </div>
+      </div>
+    </transition>
+    </Teleport>
 
     <!-- 投入码选产出的弹窗 -->
-    <transition name="modal-fade">
+    <Teleport to="body">
+      <transition name="modal-fade">
       <div v-if="inputCodeModalVisible" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/30" @click.self="closeInputCodeModal">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden transform transition-all border border-border flex flex-col m-4">
           <div class="px-6 py-4 border-b border-border/50 flex items-center justify-between shrink-0 bg-muted/10">
@@ -394,6 +441,7 @@
         </div>
       </div>
     </transition>
+    </Teleport>
   </div>
 </template>
 
@@ -436,6 +484,18 @@ const inspectionData = ref<any>(null)
 const inspectionLoading = ref(false)
 const inspectionError = ref('')
 const inspectionItems = computed<any[]>(() => inspectionData.value?.items || [])
+
+// 检验单弹窗内「不合格原因」明细弹窗（行内按钮点击查看）
+const reasonDetailVisible = ref(false)
+const reasonDetailItem = ref<any>(null)
+const showUnqualifiedReasons = (item: any) => {
+  reasonDetailItem.value = item
+  reasonDetailVisible.value = true
+}
+const closeUnqualifiedReasons = () => {
+  reasonDetailVisible.value = false
+  reasonDetailItem.value = null
+}
 
 // 提交记录弹窗
 const subModalVisible = ref(false)
@@ -661,6 +721,10 @@ const openInspectionFromSub = (rec: any) => {
 
 // ========== 工具 ==========
 const fmtTime = (t: string) => t ? t.replace(/\.\d+$/, '') : '-'
+
+// 某检验项选中的不合格原因条数（非数组/缺键按 0 计，0 = 无原因可看）
+const unqualifiedReasonCount = (item: any) =>
+  Array.isArray(item?.unqualified_reasons) ? item.unqualified_reasons.length : 0
 
 const checkResultClass = (v: string) => {
   if (!v || v === '-') return ''

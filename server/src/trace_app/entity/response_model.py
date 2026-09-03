@@ -160,6 +160,7 @@ class InspectionRecordItemDetail(TypedDict):
     tool: str  # 检验工具（可选，空串/缺键=未填）
     input_value: str  # 填写值
     is_qualified: bool  # 该项是否合格
+    unqualified_reasons: List[dict]  # 选中的不合格原因明细快照（[{reason_code, reason_name}]，合格/未配置/历史旧记录为空数组）
 
 
 class InspectionRecordItem(TypedDict):
