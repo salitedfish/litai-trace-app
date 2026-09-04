@@ -27,6 +27,12 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: 8081,
       proxy: {
+        // 跨服务图片回显：检验单基准/实际图存于 manual_line 服务器磁盘，经其 download_image 接口取。
+        // 需先于 '/api' 匹配（Vite 按对象键序匹配前缀），否则会被 /api 转发到本后端 18085 而 404。
+        '/api/manual_line_general_traceability': {
+          target: 'http://localhost:10082',
+          changeOrigin: true
+        },
         '/api': {
           target: `http://${requestHost}`,
           changeOrigin: true

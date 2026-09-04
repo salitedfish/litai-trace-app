@@ -316,6 +316,7 @@
                     <th class="px-3 py-2.5 font-medium">填写值</th>
                     <th class="px-3 py-2.5 font-medium w-24 text-center">结果</th>
                     <th class="px-3 py-2.5 font-medium w-28">不合格原因</th>
+                    <th class="px-3 py-2.5 font-medium w-28 text-center">图片</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-border/30">
@@ -339,6 +340,12 @@
                       <button v-if="unqualifiedReasonCount(item) > 0"
                         class="px-2.5 py-1 rounded-md text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors"
                         @click="showUnqualifiedReasons(item)">查看原因 ({{ unqualifiedReasonCount(item) }})</button>
+                      <span v-else class="text-xs text-muted-foreground">-</span>
+                    </td>
+                    <td class="px-3 py-2.5 text-center">
+                      <button v-if="imageCount(item) > 0"
+                        class="px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 transition-colors"
+                        @click="showImages(item)">查看图片 ({{ imageCount(item) }})</button>
                       <span v-else class="text-xs text-muted-foreground">-</span>
                     </td>
                   </tr>
@@ -380,6 +387,51 @@
               </div>
             </div>
             <p v-else class="text-sm text-muted-foreground text-center py-4">该检验项无不合格原因</p>
+          </div>
+        </div>
+      </div>
+    </transition>
+    </Teleport>
+
+    <!-- 检验单内基准/实际图片查看弹窗：图片存 manual_line 服务器磁盘、DB 只存路径，
+         经 manual_line 的 download_image 接口（跨服务、与 mgDMS 下载同约定不加登录鉴权）按路径回显 -->
+    <Teleport to="body">
+      <transition name="modal-fade">
+      <div v-if="imageDetailVisible" class="fixed inset-0 z-[1100] flex items-center justify-center bg-black/30" @click.self="closeImages">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden transform transition-all border border-border flex flex-col m-4">
+          <div class="px-5 py-3.5 border-b border-border/50 flex items-center justify-between shrink-0 bg-muted/10">
+            <div>
+              <h3 class="text-base font-bold text-foreground">检验项图片</h3>
+              <p class="text-xs text-muted-foreground mt-0.5">
+                检验项: {{ imageDetailItem?.item_name || '-' }}
+                <span v-if="imageDetailItem?.item_code" class="ml-1 font-mono">({{ imageDetailItem.item_code }})</span>
+              </p>
+            </div>
+            <button class="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" @click="closeImages">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="overflow-auto p-5">
+            <div v-if="imageDetailLoading" class="flex items-center justify-center gap-2 text-sm text-muted-foreground py-10">
+              <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              图片加载中...
+            </div>
+            <div v-else>
+              <div v-if="imageDetailError" class="text-xs text-red-500 mb-3">{{ imageDetailError }}</div>
+              <div v-if="imageDetailItem?.baseline_image" class="mb-5">
+                <p class="text-xs font-bold text-muted-foreground mb-2">基准图片（档案配置）</p>
+                <img v-if="imageDetailBaselineUrl" :src="imageDetailBaselineUrl"
+                  class="max-w-full max-h-[45vh] object-contain rounded-lg border border-border/60 bg-muted/10" alt="基准图片" />
+                <p v-else class="text-xs text-muted-foreground">基准图片加载失败或已不存在</p>
+              </div>
+              <div v-if="imageDetailItem?.actual_image">
+                <p class="text-xs font-bold text-muted-foreground mb-2">实际图片（报工上传）</p>
+                <img v-if="imageDetailActualUrl" :src="imageDetailActualUrl"
+                  class="max-w-full max-h-[45vh] object-contain rounded-lg border border-border/60 bg-muted/10" alt="实际图片" />
+                <p v-else class="text-xs text-muted-foreground">实际图片加载失败或已不存在</p>
+              </div>
+              <p v-if="!imageDetailItem?.baseline_image && !imageDetailItem?.actual_image" class="text-sm text-muted-foreground text-center py-4">该检验项未上传图片</p>
+            </div>
           </div>
         </div>
       </div>
@@ -446,9 +498,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject, computed, defineComponent, h } from 'vue'
+import { ref, inject, computed, defineComponent, h, onBeforeUnmount } from 'vue'
 import type { Ref } from 'vue'
 import api from '../api/trace-app'
+import { _postBlob } from '../api/httpWrap'
 import { showToast } from '../utils/dialog'
 import { navigateToDeviceData } from '../composables/useDeviceDataNav'
 
@@ -496,6 +549,109 @@ const closeUnqualifiedReasons = () => {
   reasonDetailVisible.value = false
   reasonDetailItem.value = null
 }
+
+// ========== 检验单基准/实际图片查看 ==========
+// 图片由 manual_line_general_traceability 报工/配置时上传存服务器磁盘，inspection_records 快照只存文件路径。
+// 经 manual_line 的 download_image 接口按路径回显（同 mgDMS 下载文件约定：不加登录鉴权，
+// 该接口只接受纯文件名路径、无路径穿越），trace_app 以同源应用前缀路径跨服务取图。
+const MANUAL_IMAGE_DOWNLOAD_URL = '/api/manual_line_general_traceability/inspection_item/download_image'
+
+const readBlobText = (blob: Blob) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onerror = () => reject(new Error('读取响应失败'))
+  reader.onload = () => resolve(String(reader.result || ''))
+  reader.readAsText(blob)
+})
+
+// 按 manual_line 落库的图片路径读回图片，返回 objectURL（调用方负责 revoke）。
+// httpWrap 响应拦截器已把 axios 响应解包为 response.data——responseType='blob' 时返回值即 Blob 本身。
+const loadManualImageUrl = async (path: string): Promise<string> => {
+  const blob: any = await _postBlob(MANUAL_IMAGE_DOWNLOAD_URL, { path })
+  if (!blob || !(blob instanceof Blob)) {
+    throw new Error('图片回显失败')
+  }
+  // 后端文件缺失/参数不合法时返回 JSON（blob.type 为 application/json），转成可读错误
+  if (blob.type && blob.type.indexOf('json') >= 0) {
+    let info = '图片不存在'
+    try {
+      info = JSON.parse(await readBlobText(blob)).info || info
+    } catch (e) {
+      // 解析失败保持默认提示
+    }
+    throw new Error(info)
+  }
+  return URL.createObjectURL(blob)
+}
+
+const imageDetailVisible = ref(false)
+const imageDetailItem = ref<any>(null)
+const imageDetailLoading = ref(false)
+const imageDetailError = ref('')
+const imageDetailBaselineUrl = ref('')
+const imageDetailActualUrl = ref('')
+
+// 某检验项可看的图片张数（基准 + 实际，存了路径才算）
+const imageCount = (item: any) => {
+  let count = 0
+  if (item?.baseline_image) count += 1
+  if (item?.actual_image) count += 1
+  return count
+}
+
+const revokeImageDetailUrls = () => {
+  if (imageDetailBaselineUrl.value) {
+    URL.revokeObjectURL(imageDetailBaselineUrl.value)
+    imageDetailBaselineUrl.value = ''
+  }
+  if (imageDetailActualUrl.value) {
+    URL.revokeObjectURL(imageDetailActualUrl.value)
+    imageDetailActualUrl.value = ''
+  }
+}
+
+const showImages = async (item: any) => {
+  imageDetailItem.value = item
+  imageDetailError.value = ''
+  imageDetailVisible.value = true
+  revokeImageDetailUrls()
+  const baseline = item?.baseline_image || ''
+  const actual = item?.actual_image || ''
+  imageDetailLoading.value = true
+  // 基准/实际图独立加载：任一张失败不影响另一张展示，错误统一提示
+  const errors: string[] = []
+  try {
+    if (baseline) {
+      try {
+        imageDetailBaselineUrl.value = await loadManualImageUrl(baseline)
+      } catch (err: any) {
+        errors.push('基准图片: ' + (err?.message || '加载失败'))
+      }
+    }
+    if (actual) {
+      try {
+        imageDetailActualUrl.value = await loadManualImageUrl(actual)
+      } catch (err: any) {
+        errors.push('实际图片: ' + (err?.message || '加载失败'))
+      }
+    }
+  } catch (err: any) {
+    errors.push(err?.message || '图片加载失败')
+  } finally {
+    imageDetailLoading.value = false
+    imageDetailError.value = errors.length > 0 ? errors.join('；') : ''
+  }
+}
+
+const closeImages = () => {
+  imageDetailVisible.value = false
+  revokeImageDetailUrls()
+  imageDetailItem.value = null
+}
+
+// 弹窗关闭后仍残留的 objectURL（极端场景下组件卸载）释放，防泄漏
+onBeforeUnmount(() => {
+  revokeImageDetailUrls()
+})
 
 // 提交记录弹窗
 const subModalVisible = ref(false)

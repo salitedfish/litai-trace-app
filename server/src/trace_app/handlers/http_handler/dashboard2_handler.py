@@ -11,10 +11,12 @@ from trace_app.entity.response_model import (
     DashboardConfigResponse,
     UnqualifiedPieRequest,
     UnqualifiedPieResponse,
+    UnqualifiedReasonPieRequest,
+    UnqualifiedReasonPieResponse,
 )
 from trace_app.utils.swagger_utils import swagger_doc
 from trace_app.utils.db import get_collection_handler
-from trace_app.service.dashboard2_unqualified_pie_service import get_unqualified_pie
+from trace_app.service.dashboard2_unqualified_pie_service import get_unqualified_pie, get_unqualified_reason_pie
 
 
 COLLECTION_NAME = 'dashboard_config_2'
@@ -143,6 +145,47 @@ class Dashboard2Handler(BaseHandler):
             product_types = [str(x).strip() for x in product_type_raw if str(x).strip()]
 
             result = await get_unqualified_pie(
+                start_date=start_date or None,
+                end_date=end_date or None,
+                workshop_code=workshop_code or None,
+                product_types=product_types or None,
+            )
+            self.send_response(Response.success(result, "查询成功"))
+        except Exception:
+            get_logger().error(traceback.format_exc())
+            self.send_response(Response.fail("查询失败，服务器内部错误"))
+
+    # =====================================================================
+    # 不合格原因占比统计
+    # 数据源同 {org}_manual_trace.inspection_records，按不合格项勾选的原因快照聚合
+    # 筛选：日期 / 产线 / 产品型号（空即不限），返回各原因被勾选次数
+    # =====================================================================
+
+    @request_mapping('/unqualified_reason_pie', method='post', description='统计不合格原因占比')
+    @swagger_doc(
+        tags=["智能看板2"],
+        summary="统计不合格原因占比",
+        description="从检验单（inspection_records）不合格项勾选的原因快照 unqualified_reasons 聚合计数，"
+                    "供看板2 饼图展示；支持日期 / 产线 / 产品型号筛选，空即不限",
+        request_model=UnqualifiedReasonPieRequest,
+        response_model=UnqualifiedReasonPieResponse,
+    )
+    @loginrequired
+    async def query_unqualified_reason_pie(self):
+        """统计各不合格原因被勾选次数（日期/产线/产品型号筛选，空即不限）"""
+        try:
+            data = self.data or {}
+            start_date = str(data.get('start_date') or '').strip()
+            end_date = str(data.get('end_date') or '').strip()
+            workshop_code = str(data.get('workshop_code') or '').strip()
+
+            # 产品型号支持多选，传数组；非数组视为不限
+            product_type_raw = data.get('product_types') or []
+            if not isinstance(product_type_raw, list):
+                product_type_raw = []
+            product_types = [str(x).strip() for x in product_type_raw if str(x).strip()]
+
+            result = await get_unqualified_reason_pie(
                 start_date=start_date or None,
                 end_date=end_date or None,
                 workshop_code=workshop_code or None,

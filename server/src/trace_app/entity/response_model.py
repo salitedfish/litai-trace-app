@@ -242,6 +242,27 @@ class UnqualifiedPieResponse(BaseResponse):
     data: List[UnqualifiedPieItem]  # 各检验项不合格计数（按次数降序）
 
 
+# ==================== 智能看板2 不合格原因占比 ====================
+
+class UnqualifiedReasonPieRequest(TypedDict):
+    """不合格原因占比请求参数"""
+    start_date: str  # 开始日期（YYYY-MM-DD，可选，空为当天）
+    end_date: str  # 截止日期（YYYY-MM-DD，可选，空为当天）
+    workshop_code: str  # 产线编码（可选，空为全部产线）
+    product_types: List[str]  # 产品型号列表（可选，多选，空为不限）
+
+
+class UnqualifiedReasonPieItem(TypedDict):
+    """单个不合格原因的统计"""
+    reason_code: str  # 不合格原因编码（快照缺失/为空时回退名称作键）
+    reason_name: str  # 不合格原因名称（取检验单快照，缺失时回退编码）
+    count: int  # 该原因在不合格项中被勾选的次数
+
+
+class UnqualifiedReasonPieResponse(BaseResponse):
+    data: List[UnqualifiedReasonPieItem]  # 各不合格原因被勾选次数（按次数降序）
+
+
 # ==================== 设备数采查询 ====================
 
 class DeviceItem(TypedDict):

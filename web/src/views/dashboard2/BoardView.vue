@@ -33,10 +33,10 @@
         <DeviceStatusCard ref="deviceStatusCardRef" :line-code="selectedLine" />
       </section>
 
-      <!-- 第二行：工序加工情况 / 检验项不合格占比 -->
+      <!-- 第二行：工序加工情况 / 不合格原因占比（旧检验项不合格占比卡 UnqualifiedPieCard.vue 保留备用） -->
       <section v-show="configReady" class="charts-row2">
         <ProcessProductionCard ref="processProductionCardRef" />
-        <UnqualifiedPieCard ref="pieCardRef" :workshop-name="workshopName" />
+        <UnqualifiedReasonPieCard ref="reasonPieCardRef" :workshop-name="workshopName" />
       </section>
     </main>
 
@@ -52,7 +52,7 @@ import HeaderBar from '../dashboard/components/HeaderBar.vue'
 import OeeCard from '../dashboard/components/OeeCard.vue'
 import DeviceStatusCard from '../dashboard/components/DeviceStatusCard.vue'
 import ProcessProductionCard from './components/ProcessProductionCard.vue'
-import UnqualifiedPieCard from './components/UnqualifiedPieCard.vue'
+import UnqualifiedReasonPieCard from './components/UnqualifiedReasonPieCard.vue'
 import '../dashboard/dashboard.theme.css'
 
 const emit = defineEmits<{ (e: 'exit'): void }>()
@@ -73,7 +73,7 @@ const configReady = ref(false)
 const oeeCardRef = ref<InstanceType<typeof OeeCard>>()
 const deviceStatusCardRef = ref<InstanceType<typeof DeviceStatusCard>>()
 const processProductionCardRef = ref<InstanceType<typeof ProcessProductionCard>>()
-const pieCardRef = ref<InstanceType<typeof UnqualifiedPieCard>>()
+const reasonPieCardRef = ref<InstanceType<typeof UnqualifiedReasonPieCard>>()
 
 onMounted(async () => {
   // 加载看板2配置（标题 / 查询日期 / 产线 / 产品型号），与看板1完全独立
@@ -111,8 +111,8 @@ onMounted(async () => {
   processProductionCardRef.value?.start()
   deviceStatusCardRef.value?.start()
 
-  // 饼图卡：按配置的日期 / 产线 / 产品型号统计不合格项占比（产线空 = 全部产线）
-  pieCardRef.value?.load({
+  // 饼图卡：按配置的日期 / 产线 / 产品型号统计不合格原因占比（产线空 = 全部产线）
+  reasonPieCardRef.value?.load({
     start_date: startDate.value,
     end_date: endDate.value,
     workshop_code: selectedLine.value,

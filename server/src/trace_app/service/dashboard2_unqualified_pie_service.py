@@ -80,6 +80,84 @@ async def get_unqualified_pie(start_date=None, end_date=None, workshop_code=None
         return []
 
 
+async def get_unqualified_reason_pie(start_date=None, end_date=None, workshop_code=None, product_types=None):
+    """统计各不合格原因被勾选次数（供看板2 不合格原因占比饼图展示）
+
+    口径：样本 = 不合格检验项勾选的原因快照。每张检验单 items 中 is_qualified=False 的项，
+    其 unqualified_reasons（[{reason_code, reason_name}]）逐条各计 1（一项可勾多个原因都计入）；
+    未勾原因的不合格项（检验项档案未配原因、或该类型原本不允许配原因的旧快照）不进入统计。
+    占比 = 该原因被勾选次数 ÷ 全部勾选原因总次数（前端算百分比）。
+
+    Args:
+        start_date: 起始日期（YYYY-MM-DD，None/空为当天）
+        end_date: 截止日期（YYYY-MM-DD，含当天；None/空为当天）
+        workshop_code: 产线编码（车间代号，None/空为全部产线）
+        product_types: 产品型号列表（None/空为不限）
+
+    Returns:
+        按被勾选次数降序的列表：[{reason_code, reason_name, count}]
+    """
+    try:
+        start_str, end_exclusive_str = _resolve_time_range(start_date, end_date)
+
+        query = {
+            "op_time": {"$gte": start_str, "$lt": end_exclusive_str},
+            "is_delete": {"$ne": True},
+        }
+
+        # 产线过滤：布局表查该车间全部生产单元代号；车间无生产单元 → 无数据
+        if workshop_code:
+            unit_codes = await _get_workshop_unit_codes(workshop_code)
+            if not unit_codes:
+                return []
+            query["produce_unit_code"] = {"$in": list(unit_codes)}
+
+        # 产品型号过滤：型号编码与产品编码人工保持一致，直接匹配 product_code
+        if product_types:
+            query["product_code"] = {"$in": list(product_types)}
+
+        coll = await get_inspection_records_coll()
+        stats = {}
+        async for doc in coll.find(query, {"_id": 0, "items": 1}):
+            for item in doc.get("items") or []:
+                if item.get("is_qualified"):
+                    continue
+                # 只统计勾选过原因的不合格项，未勾原因的不参与原因占比
+                for reason in item.get("unqualified_reasons") or []:
+                    if not isinstance(reason, dict):
+                        continue
+                    reason_code = str(reason.get("reason_code") or "").strip()
+                    reason_name = str(reason.get("reason_name") or "").strip()
+                    # 优先按编码聚合，编码缺失（历史数据）时回退名称作键；都缺则跳过
+                    key = reason_code or reason_name
+                    if not key:
+                        continue
+                    entry = stats.setdefault(
+                        key, {"reason_code": reason_code, "reason_name": reason_name, "count": 0}
+                    )
+                    entry["count"] += 1
+                    if not entry["reason_name"]:
+                        entry["reason_name"] = reason_name
+
+        if not stats:
+            return []
+
+        # reason_name 缺失时回退显示编码
+        result = [
+            {
+                "reason_code": s["reason_code"],
+                "reason_name": s["reason_name"] or s["reason_code"],
+                "count": s["count"],
+            }
+            for s in stats.values()
+        ]
+        result.sort(key=lambda x: x["count"], reverse=True)
+        return result
+    except Exception as e:
+        get_logger().exception("统计不合格原因占比失败: %s", e)
+        return []
+
+
 def _resolve_time_range(start_date, end_date):
     """把日期参数解析成 op_time 字符串比较区间（含起、不含止）
 

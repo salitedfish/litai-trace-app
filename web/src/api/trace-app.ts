@@ -41,6 +41,9 @@ export default {
   // 智能看板2 - 检验项不合格占比（饼图，日期/产线/产品型号筛选，空即不限）
   queryUnqualifiedPie: (params: { start_date?: string, end_date?: string, workshop_code?: string, product_types?: string[] }) =>
     _post('api/trace_app/dashboard_2/unqualified_pie', params),
+  // 智能看板2 - 不合格原因占比（饼图，样本=不合格项勾选的原因，无原因项不计入）
+  queryUnqualifiedReasonPie: (params: { start_date?: string, end_date?: string, workshop_code?: string, product_types?: string[] }) =>
+    _post('api/trace_app/dashboard_2/unqualified_reason_pie', params),
 
   // 生产基础配置
   queryRoutingList: () => _post('api/trace_app/base_config/routing_list'),
