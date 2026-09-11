@@ -74,6 +74,14 @@ async def get_inspection_records_coll():
     return await get_collection_handler("inspection_records", _get_db_name("manual_trace"))
 
 
+async def get_material_scan_records_coll():
+    """获取扫码登料记录表（material_scan_records）集合句柄
+
+    扫码登料记录由 manual_line_general_traceability 落库，存放在 {org}_manual_trace 库，只读。
+    """
+    return await get_collection_handler("material_scan_records", _get_db_name("manual_trace"))
+
+
 async def get_datas_coll():
     """获取数采数据表（datas）集合句柄"""
     idi_db = f"idi_{get_organization()}"

@@ -14,6 +14,7 @@
       <main class="flex-1 w-full px-6 overflow-y-auto custom-scrollbar relative z-10 flex flex-col">
         <HomeView v-show="currentView === 'home'" />
         <TraceQueryView v-show="currentView === 'history'" />
+        <MaterialScanQueryView v-show="currentView === 'material_scan_query'" />
         <DeviceDataView v-show="currentView === 'device_data'" />
         <DashboardSettingsView v-show="currentView === 'dashboard_settings'" />
         <BoardSettingsView v-show="currentView === 'dashboard2_settings'" />
@@ -28,6 +29,7 @@ import Sidebar from './components/layout/Sidebar.vue'
 import Header from './components/layout/Header.vue'
 import HomeView from './views/HomeView.vue'
 import TraceQueryView from './views/TraceQueryView.vue'
+import MaterialScanQueryView from './views/MaterialScanQueryView.vue'
 import DeviceDataView from './views/DeviceDataView.vue'
 import DashboardView from './views/dashboard/DashboardView.vue'
 import DashboardSettingsView from './views/dashboard/DashboardSettingsView.vue'

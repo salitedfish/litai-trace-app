@@ -51,8 +51,13 @@ def get_device_status(device_code):
     return _device_status_map.get(device_code, 0)
 
 
-def update_device_status(data):
-    """MQ `time_interval_status` 处理：更新设备实时状态"""
+async def update_device_status(data):
+    """MQ `time_interval_status` 处理：更新设备实时状态
+
+    必须是协程：mq_config 的分发器对所有订阅函数统一 `await`，
+    返回 None 的同步函数会让它抛 `TypeError: object NoneType can't be used in 'await' expression`，
+    该条消息就被吞掉（只更新内存 map，本身不阻塞，所以写成协程无副作用）。
+    """
     try:
         device_code = data.get("device_code")
         if not device_code:

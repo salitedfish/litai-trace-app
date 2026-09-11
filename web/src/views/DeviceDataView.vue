@@ -12,6 +12,7 @@
             variant="outline"
             :disabled="deviceLoading"
             searchable
+            @change="handleDeviceChange"
           />
         </div>
         <div class="flex flex-col gap-1.5">
@@ -135,12 +136,14 @@ const pointOptions = ref<{ label: string, value: string }[]>([])
 const pointLoading = ref(false)
 
 
-// 切换设备时重新加载点位
-watch(selectedDevice, () => {
+// 用户手动切换设备时，清空点位并重新加载。
+// 用 CustomSelect 的 change 事件而不是 watch(selectedDevice)：change 只在用户交互时触发，
+// 程序赋值（下面 watch pending 的跳转预填）不会触发，那种场景由它自己加载点位。
+const handleDeviceChange = () => {
   selectedPoint.value = ''
   pointOptions.value = []
   loadDevicePoints()
-})
+}
 
 // 时间范围
 const startTime = ref('')
@@ -188,13 +191,16 @@ const loadDeviceList = async () => {
 
 // ========== 点位列表 ==========
 const loadDevicePoints = async () => {
-  if (!selectedDevice.value) {
+  const deviceCode = selectedDevice.value
+  if (!deviceCode) {
     pointOptions.value = []
     return
   }
   pointLoading.value = true
   try {
-    const res = await api.queryDevicePoints(selectedDevice.value)
+    const res = await api.queryDevicePoints(deviceCode)
+    // 请求期间设备又被切走了，丢弃这次过期响应，别把上一个设备的点位显示出来
+    if (selectedDevice.value != deviceCode) return
     const list = res.data || []
     pointOptions.value = list.map((p: any) => ({
       label: `${p.name} (${p.code})`,
@@ -202,9 +208,9 @@ const loadDevicePoints = async () => {
     }))
   } catch (err: any) {
     console.error('加载点位列表失败:', err)
-    pointOptions.value = []
+    if (selectedDevice.value == deviceCode) pointOptions.value = []
   } finally {
-    pointLoading.value = false
+    if (selectedDevice.value == deviceCode) pointLoading.value = false
   }
 }
 
@@ -262,6 +268,9 @@ watch(() => deviceDataNavState.pending, async (pending) => {
       // 点位清空，查询该设备全部点位
       selectedPoint.value = ''
       pointOptions.value = []
+      // 这里必须显式加载：跳到同一台设备的第二条记录时 selectedDevice 没有变化，
+      // 不会触发 handleDeviceChange，点位下拉会空着（只有「无数据」）
+      await loadDevicePoints()
       await handleQuery()
     }
   } catch (err) {

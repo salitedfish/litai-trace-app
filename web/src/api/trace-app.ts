@@ -26,6 +26,15 @@ export default {
     page_size: number,
   }) => _post('api/trace_app/device_data/query', params),
 
+  // 扫码登料查询（数据源：{org}_manual_trace.material_scan_records）
+  queryMaterialScanRecords: (params: {
+    code?: string,
+    start_time?: string,
+    end_time?: string,
+    page: number,
+    page_size: number,
+  }) => _post('api/trace_app/material_scan/query', params),
+
   // 智能看板配置
   getDashboardConfig: () => _get('api/trace_app/dashboard/config'),
   saveDashboardConfig: (params: { title: string, start_date?: string, end_date?: string, workshop_code?: string, product_type?: string[] }) =>

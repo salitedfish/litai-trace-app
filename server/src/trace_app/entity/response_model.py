@@ -397,3 +397,38 @@ class LineDevicesResult(TypedDict):
 
 class LineDevicesResponse(BaseResponse):
     data: LineDevicesResult  # 产线设备查询结果
+
+
+# ==================== 扫码登料查询 ====================
+
+class MaterialScanQueryRequest(TypedDict):
+    """扫码登料查询请求参数"""
+    code: str  # 码值（可选，模糊匹配）
+    start_time: str  # 开始时间（YYYY-MM-DD HH:mm:ss，可选）
+    end_time: str  # 结束时间（YYYY-MM-DD HH:mm:ss，可选）
+    page: int  # 页码（从 1 开始）
+    page_size: int  # 每页条数
+
+
+class MaterialScanRecordItem(TypedDict):
+    """扫码登料记录"""
+    id: str  # 记录ID
+    product_code: str  # 产品编码
+    product_name: str  # 产品名称
+    routing_code: str  # 工艺路线编码
+    routing_name: str  # 工艺路线名称
+    process_code: str  # 工序编码
+    process_name: str  # 工序名称
+    device_code: str  # 设备编码（前端跳转数采查询用，工序未配置生产单元时为空）
+    device_name: str  # 设备名称
+    material_code: str  # 物料编码
+    material_name: str  # 物料名称
+    op_type: str  # 操作类型（in=投入/out=产出）
+    code: str  # 码值
+    code_type: str  # 条码类型
+    operator: str  # 操作人工号
+    op_time: str  # 操作时间
+
+
+class MaterialScanQueryResponse(BaseResponse):
+    data: PageItem  # 分页数据（包含 total, page, page_size, list）

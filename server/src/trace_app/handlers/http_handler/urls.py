@@ -6,6 +6,7 @@ from trace_app.handlers.http_handler.device_data_handler import DeviceDataHandle
 from trace_app.handlers.http_handler.dashboard_handler import DashboardHandler
 from trace_app.handlers.http_handler.dashboard2_handler import Dashboard2Handler
 from trace_app.handlers.http_handler.base_config_handler import BaseConfigHandler
+from trace_app.handlers.http_handler.material_scan_handler import MaterialScanHandler
 from trace_app.utils.swagger_utils import generate_handler_classes
 
 url = []
@@ -16,6 +17,7 @@ r.register(DeviceDataHandler)
 r.register(DashboardHandler)
 r.register(Dashboard2Handler)
 r.register(BaseConfigHandler)
+r.register(MaterialScanHandler)
 
 # SampleHandler（示例/工具接口，无数据查询）
 #   /api/trace_app/health（GET）  健康检查
@@ -57,6 +59,12 @@ for path, handler_cls, methods in generate_handler_classes(Dashboard2Handler):
 #   /api/trace_app/base_config/line_list（POST）       查布局表 web_layout_application 按车间代号（产线）去重的产线列表
 #   /api/trace_app/base_config/line_devices（POST）    按车间代号查布局表 web_layout_application，按生产单元分组返回设备
 for path, handler_cls, methods in generate_handler_classes(BaseConfigHandler):
+    r.register(handler_cls)
+
+# MaterialScanHandler（扫码登料查询，查 {org}_manual_trace.material_scan_records，
+# 由 manual_line_general_traceability 落库，只读）
+#   /api/trace_app/material_scan/query（POST） 按码值（模糊）+ 时间范围分页查询扫码登料记录
+for path, handler_cls, methods in generate_handler_classes(MaterialScanHandler):
     r.register(handler_cls)
 
 url.extend(r.host_handlers)

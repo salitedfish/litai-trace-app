@@ -420,14 +420,18 @@
               <div v-if="imageDetailError" class="text-xs text-red-500 mb-3">{{ imageDetailError }}</div>
               <div v-if="imageDetailItem?.baseline_image" class="mb-5">
                 <p class="text-xs font-bold text-muted-foreground mb-2">基准图片（档案配置）</p>
-                <img v-if="imageDetailBaselineUrl" :src="imageDetailBaselineUrl"
-                  class="max-w-full max-h-[45vh] object-contain rounded-lg border border-border/60 bg-muted/10" alt="基准图片" />
+                <!-- 滚轮/双指以光标为锚点缩放，放大后按住可自由拖动 -->
+                <div v-if="imageDetailBaselineUrl" class="w-full h-[45vh] rounded-lg border border-border/60 bg-muted/10 overflow-hidden">
+                  <PanZoomImage :src="imageDetailBaselineUrl" alt="基准图片" compact />
+                </div>
                 <p v-else class="text-xs text-muted-foreground">基准图片加载失败或已不存在</p>
               </div>
               <div v-if="imageDetailItem?.actual_image">
                 <p class="text-xs font-bold text-muted-foreground mb-2">实际图片（报工上传）</p>
-                <img v-if="imageDetailActualUrl" :src="imageDetailActualUrl"
-                  class="max-w-full max-h-[45vh] object-contain rounded-lg border border-border/60 bg-muted/10" alt="实际图片" />
+                <!-- 滚轮/双指以光标为锚点缩放，放大后按住可自由拖动 -->
+                <div v-if="imageDetailActualUrl" class="w-full h-[45vh] rounded-lg border border-border/60 bg-muted/10 overflow-hidden">
+                  <PanZoomImage :src="imageDetailActualUrl" alt="实际图片" compact />
+                </div>
                 <p v-else class="text-xs text-muted-foreground">实际图片加载失败或已不存在</p>
               </div>
               <p v-if="!imageDetailItem?.baseline_image && !imageDetailItem?.actual_image" class="text-sm text-muted-foreground text-center py-4">该检验项未上传图片</p>
@@ -504,6 +508,7 @@ import api from '../api/trace-app'
 import { _postBlob } from '../api/httpWrap'
 import { showToast } from '../utils/dialog'
 import { navigateToDeviceData } from '../composables/useDeviceDataNav'
+import PanZoomImage from '../components/ui/PanZoomImage.vue'
 
 const currentView = inject<Ref<string>>('currentView', ref('home'))
 
