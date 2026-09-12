@@ -53,6 +53,7 @@ import OeeCard from '../dashboard/components/OeeCard.vue'
 import DeviceStatusCard from '../dashboard/components/DeviceStatusCard.vue'
 import ProcessProductionCard from './components/ProcessProductionCard.vue'
 import UnqualifiedReasonPieCard from './components/UnqualifiedReasonPieCard.vue'
+import { formatDateLocal } from '../../utils/datetime'
 import '../dashboard/dashboard.theme.css'
 
 const emit = defineEmits<{ (e: 'exit'): void }>()
@@ -60,7 +61,9 @@ const emit = defineEmits<{ (e: 'exit'): void }>()
 const pageTitle = ref('智能看板2')
 
 // ========== 看板参数（日期 / 产线 / 产品型号，来自看板2配置，加载时一并获取） ==========
-const today = new Date().toISOString().slice(0, 10)
+// 取本地日期，不能用 toISOString().slice(0,10)——那是 UTC 日期，
+// 北京时间 00:00~07:59 之间会取到"昨天"，看板默认查到前一天的数据
+const today = formatDateLocal(new Date())
 const startDate = ref(today)
 const endDate = ref(today)
 const selectedLine = ref('')

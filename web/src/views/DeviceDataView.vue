@@ -121,6 +121,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import api from '../api/trace-app'
 import CustomSelect from '../components/CustomSelect.vue'
 import { useDeviceDataNav, formatDatetimeLocal } from '../composables/useDeviceDataNav'
+import { toIsoSeconds } from '../utils/datetime'
 
 // 追溯查询跳转预填状态（TraceQueryView 写入）
 const { state: deviceDataNavState } = useDeviceDataNav()
@@ -227,9 +228,11 @@ const doQuery = async () => {
   queryError.value = ''
   searched.value = true
   try {
-    // 将 datetime-local 格式转为 ISO 8601
-    const st = new Date(startTime.value).toISOString()
-    const et = new Date(endTime.value).toISOString()
+    // datetime-local 值补齐秒后原样发送，绝不转 UTC：
+    // 库里 datas.timestamp 存的是本地墙上时间，后端也按墙上时间比较，
+    // 一旦 toISOString() 就会整体偏 8 小时（跳转后查不到数据）
+    const st = toIsoSeconds(startTime.value)
+    const et = toIsoSeconds(endTime.value)
 
     const res = await api.queryDeviceData({
       device_code: selectedDevice.value,

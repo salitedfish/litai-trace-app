@@ -65,6 +65,7 @@ import PlanActualOutputCard from './components/PlanActualOutputCard.vue'
 import ProcessQualifiedRateCard from './components/ProcessQualifiedRateCard.vue'
 import HourlyOutputCard from './components/HourlyOutputCard.vue'
 import HistoryDataCard from './components/HistoryDataCard.vue'
+import { formatDateLocal } from '../../utils/datetime'
 import './dashboard.theme.css'
 
 const emit = defineEmits<{ (e: 'exit'): void }>()
@@ -72,7 +73,9 @@ const emit = defineEmits<{ (e: 'exit'): void }>()
 const pageTitle = ref('智能生产看板')
 
 // ========== 看板参数（日期 / 产线，来自看板配置，加载时一并获取） ==========
-const today = new Date().toISOString().slice(0, 10)
+// 取本地日期，不能用 toISOString().slice(0,10)——那是 UTC 日期，
+// 北京时间 00:00~07:59 之间会取到"昨天"，看板默认查到前一天的数据
+const today = formatDateLocal(new Date())
 const startDate = ref(today)
 const endDate = ref(today)
 const selectedLine = ref('')

@@ -780,7 +780,7 @@ const closeParamModal = () => {
   paramData.value = []
 }
 
-// ========== 数采数据：跳转数采查询并携带设备 + 报工时间±30min ==========
+// ========== 数采数据：跳转数采查询并携带设备 + 报工时间±5min ==========
 const goDeviceDataFromParam = () => {
   const step = paramStep.value
   const ok = navigateToDeviceData({
