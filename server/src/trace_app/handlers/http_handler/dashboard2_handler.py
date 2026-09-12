@@ -21,6 +21,9 @@ from trace_app.service.dashboard2_unqualified_pie_service import get_unqualified
 
 COLLECTION_NAME = 'dashboard_config_2'
 
+# 看板2 可配置模拟数据的四个模块（与前端设置页、四张卡片一一对应）
+MOCK_MODULES = ('oee', 'device_status', 'process_production', 'unqualified_reason')
+
 
 @request_mapping('/api/trace_app/dashboard_2')
 class Dashboard2Handler(BaseHandler):
@@ -75,6 +78,24 @@ class Dashboard2Handler(BaseHandler):
                 product_type_raw = []
             product_type = [str(x).strip() for x in product_type_raw if str(x).strip()]
 
+            # 模拟数据配置（客户演示用）：{模块: {enabled: 是否启用, data: 模拟数据}}
+            # 仅做结构收敛（模块白名单 + enabled 转 bool + 丢弃空模块）；
+            # data 的具体形状由设置页保存前校验、由看板卡片消费，此处不解析
+            mock_raw = data.get('mock')
+            mock = {}
+            if isinstance(mock_raw, dict):
+                for module_key in MOCK_MODULES:
+                    item = mock_raw.get(module_key)
+                    if not isinstance(item, dict):
+                        continue
+                    enabled = bool(item.get('enabled'))
+                    mock_data = item.get('data')
+                    # 既未启用又无内容的模块不落库，保持文档干净；
+                    # 未启用但留了数据的模块要保留，用户重新开启时不必重填
+                    if not enabled and mock_data is None:
+                        continue
+                    mock[module_key] = {'enabled': enabled, 'data': mock_data}
+
             coll = await get_collection_handler(COLLECTION_NAME)
             doc = await coll.find_one({}, {'_id': 1})
             now = datetime.now().isoformat()
@@ -87,6 +108,7 @@ class Dashboard2Handler(BaseHandler):
                 ('end_date', end_date),
                 ('workshop_code', workshop_code),
                 ('product_type', product_type),
+                ('mock', mock),
             ]:
                 if value:
                     set_fields[field] = value
@@ -104,7 +126,7 @@ class Dashboard2Handler(BaseHandler):
                     'created_at': now,
                     'updated_at': now,
                 }
-                for field in ('start_date', 'end_date', 'workshop_code', 'product_type'):
+                for field in ('start_date', 'end_date', 'workshop_code', 'product_type', 'mock'):
                     if set_fields.get(field):
                         insert_data[field] = set_fields[field]
                 await coll.insert_one(insert_data)

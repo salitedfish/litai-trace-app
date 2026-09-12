@@ -7,9 +7,9 @@
         </svg>
         设备 OEE
       </h3>
-      <span class="tech-badge" :class="connected ? 'live' : 'offline'">
+      <span class="tech-badge" :class="badgeLive ? 'live' : 'offline'">
         <span class="tech-dot"></span>
-        {{ connected ? '实时' : '断开' }}
+        {{ badgeLive ? '实时' : '断开' }}
       </span>
     </div>
 
@@ -81,10 +81,19 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted } from 'vue'
-import { useDashboardWebSocket } from '../../../composables/useDashboardWebSocket'
+import { useDashboardWebSocket, type OeeData } from '../../../composables/useDashboardWebSocket'
+
+// mockData：看板2 配置的模拟数据（客户演示用），传入即启用——直接展示传入值、不连 WebSocket。
+// 看板1 不传该 prop，行为与改动前完全一致。
+const props = defineProps<{ mockData?: OeeData | null }>()
 
 // ========== WebSocket OEE 数据（组件自管理，父组件配置就绪后 start 启动） ==========
 const { oeeData, connected, connect, disconnect, setQueryDate } = useDashboardWebSocket()
+
+const isMock = computed(() => !!props.mockData)
+
+// 模拟模式下不连 WebSocket，但徽标须与正式看板一致显示"实时"——不能露出一块"断开"
+const badgeLive = computed(() => isMock.value || connected.value)
 
 onUnmounted(() => {
   disconnect()
@@ -95,8 +104,12 @@ function setDate(dateStart: string, dateEnd: string) {
   setQueryDate(dateStart, dateEnd)
 }
 
-/** 供父组件在配置就绪后启动 WebSocket（避免先按默认条件查一波再按配置改查） */
+/** 供父组件在配置就绪后启动：模拟模式直接落配置值，否则连 WebSocket 取真实数据 */
 function start() {
+  if (props.mockData) {
+    oeeData.value = { ...props.mockData }
+    return
+  }
   connect()
 }
 

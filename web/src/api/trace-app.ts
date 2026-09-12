@@ -44,8 +44,9 @@ export default {
     _post('api/trace_app/dashboard/history_output', { product_types: productTypes }),
 
   // 智能看板2配置（独立于看板1）
+  // mock：模拟数据配置（客户演示用），{模块: {enabled, data}}，模块见 BoardSettingsView 的 mockModules
   getDashboardConfig2: () => _get('api/trace_app/dashboard_2/config'),
-  saveDashboardConfig2: (params: { title: string, start_date?: string, end_date?: string, workshop_code?: string, product_type?: string[] }) =>
+  saveDashboardConfig2: (params: { title: string, start_date?: string, end_date?: string, workshop_code?: string, product_type?: string[], mock?: any }) =>
     _post('api/trace_app/dashboard_2/config', params),
   // 智能看板2 - 检验项不合格占比（饼图，日期/产线/产品型号筛选，空即不限）
   queryUnqualifiedPie: (params: { start_date?: string, end_date?: string, workshop_code?: string, product_types?: string[] }) =>

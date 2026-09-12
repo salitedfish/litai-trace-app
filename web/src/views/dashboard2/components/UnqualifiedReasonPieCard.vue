@@ -104,7 +104,11 @@ interface PieSegment {
   offset: string
 }
 
-const props = defineProps<{ workshopName?: string }>()
+const props = defineProps<{
+  workshopName?: string
+  // mockData：看板2 配置的模拟数据（客户演示用），传入即启用——直接展示传入值、不查接口
+  mockData?: { reason_name: string, count: number }[] | null
+}>()
 
 // ========== 数据与请求状态（进看板由父组件调用 load()，不自行 onMounted 查） ==========
 const reasons = ref<{ reason_name: string, count: number }[]>([])
@@ -175,6 +179,16 @@ function load(params: PieParams) {
   if (timer != null) {
     clearInterval(timer)
     timer = null
+  }
+  // 模拟模式：直接展示配置数据，不查接口、不挂 60s 自动刷新（徽标落到"已更新"）
+  if (props.mockData) {
+    reasons.value = props.mockData
+      .map(it => ({ reason_name: String(it.reason_name || ''), count: Number(it.count) || 0 }))
+      .filter(it => it.count > 0)
+    loaded.value = true
+    loading.value = false
+    error.value = ''
+    return
   }
   doFetch()
   timer = window.setInterval(doFetch, 60000)

@@ -7,9 +7,9 @@
         </svg>
         工序加工情况
       </h3>
-      <span class="tech-badge" :class="connected ? 'live' : 'offline'">
+      <span class="tech-badge" :class="badgeLive ? 'live' : 'offline'">
         <span class="tech-dot"></span>
-        {{ connected ? '实时' : '断开' }}
+        {{ badgeLive ? '实时' : '断开' }}
       </span>
     </div>
 
@@ -55,25 +55,34 @@
 <script setup lang="ts">
 import { computed, onUnmounted } from 'vue'
 import SeamlessScroll from '../../../components/ui/SeamlessScroll.vue'
-import { useProcessProduction } from '../../../composables/useProcessProduction'
+import { useProcessProduction, type ProcessProductionItem } from '../../../composables/useProcessProduction'
+
+// mockData：看板2 配置的模拟数据（客户演示用），传入即启用——直接展示传入值、不连 WebSocket
+const props = defineProps<{ mockData?: ProcessProductionItem[] | null }>()
 
 // ========== WebSocket 工序加工情况（组件自管理，父组件配置就绪后 start 启动） ==========
 const { processProduction, connected, connect, disconnect, setQueryDate } = useProcessProduction()
+
+const isMock = computed(() => !!props.mockData)
+
+// 模拟模式下不连 WebSocket，但徽标须与正式看板一致显示"实时"——不能露出一块"断开"
+const badgeLive = computed(() => isMock.value || connected.value)
 
 /** 供父组件（BoardView）从看板配置读取日期后设置查询区间 */
 function setDate(dateStart: string, dateEnd: string) {
   setQueryDate(dateStart, dateEnd)
 }
 
-/** 供父组件在配置就绪后启动 WebSocket（避免先按默认条件查一波再按配置改查） */
+/** 供父组件在配置就绪后启动：模拟模式不连 WebSocket（数据由父组件传入） */
 function start() {
+  if (isMock.value) return
   connect()
 }
 
 defineExpose({ setDate, start })
 
-// 工序加工情况列表
-const items = computed(() => processProduction.value)
+// 工序加工情况列表：模拟模式取配置数据，否则取 WebSocket 实时数据
+const items = computed(() => (props.mockData ? props.mockData : processProduction.value))
 
 /** 合格率数字颜色：低于 90% 红色，大于等于 90% 绿色 */
 function rateClass(rate: number): string {

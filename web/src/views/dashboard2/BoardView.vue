@@ -27,16 +27,16 @@
         <span class="board-loading-text">正在加载看板配置...</span>
       </div>
 
-      <!-- 第一行：OEE / 产线设备 -->
+      <!-- 第一行：OEE / 产线设备（mock-data 传 null 即走真实数据） -->
       <section v-show="configReady" class="charts-row2">
-        <OeeCard ref="oeeCardRef" />
-        <DeviceStatusCard ref="deviceStatusCardRef" :line-code="selectedLine" />
+        <OeeCard ref="oeeCardRef" :mock-data="mockDataOf('oee')" />
+        <DeviceStatusCard ref="deviceStatusCardRef" :line-code="selectedLine" :mock-data="mockDataOf('device_status')" />
       </section>
 
       <!-- 第二行：工序加工情况 / 不合格原因占比（旧检验项不合格占比卡 UnqualifiedPieCard.vue 保留备用） -->
       <section v-show="configReady" class="charts-row2">
-        <ProcessProductionCard ref="processProductionCardRef" />
-        <UnqualifiedReasonPieCard ref="reasonPieCardRef" :workshop-name="workshopName" />
+        <ProcessProductionCard ref="processProductionCardRef" :mock-data="mockDataOf('process_production')" />
+        <UnqualifiedReasonPieCard ref="reasonPieCardRef" :workshop-name="workshopName" :mock-data="mockDataOf('unqualified_reason')" />
       </section>
     </main>
 
@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import api from '../../api/trace-app'
 import HeaderBar from '../dashboard/components/HeaderBar.vue'
 import OeeCard from '../dashboard/components/OeeCard.vue'
@@ -73,6 +73,16 @@ const workshopName = ref('')
 // 配置是否已获取完（在此之前显示加载中，卡片不启动）
 const configReady = ref(false)
 
+// ========== 模拟数据配置（客户演示用，来自看板2 配置的 mock 字段） ==========
+// 启用后对应卡片展示配置数据、不再查真实数据；看板本体不带任何模拟相关字样
+const mockConfig = ref<Record<string, { enabled: boolean, data: any }>>({})
+
+/** 取某模块已启用的模拟数据；未启用或没数据返回 null（卡片按正常链路取真实数据） */
+function mockDataOf(key: string): any {
+  const item = mockConfig.value[key]
+  return item && item.enabled && item.data != null ? item.data : null
+}
+
 const oeeCardRef = ref<InstanceType<typeof OeeCard>>()
 const deviceStatusCardRef = ref<InstanceType<typeof DeviceStatusCard>>()
 const processProductionCardRef = ref<InstanceType<typeof ProcessProductionCard>>()
@@ -93,6 +103,8 @@ onMounted(async () => {
     configEndDate = cfg.end_date || ''
     configWorkshopCode = cfg.workshop_code || ''
     configProductType = Array.isArray(cfg.product_type) ? cfg.product_type.slice() : []
+    // 模拟数据配置（未配置时保持空对象 = 四块全走真实数据）
+    mockConfig.value = cfg.mock && typeof cfg.mock == 'object' && !Array.isArray(cfg.mock) ? cfg.mock : {}
   } catch (_) {
     // 使用默认配置
   }
@@ -102,6 +114,11 @@ onMounted(async () => {
   if (configEndDate) endDate.value = configEndDate
   if (configWorkshopCode) selectedLine.value = configWorkshopCode
   productTypes.value = configProductType
+
+  // 模拟数据是经 prop 下发给卡片的，props 要等一次渲染 flush 才更新；
+  // 而下面 setDate/start/load 都是同步调用，不等这一下卡片拿到的还是旧 props，
+  // 配好的模拟数据会进不去（表现为"配了模拟数据看板没反应"）
+  await nextTick()
 
   // 配置了查询日期时，同步给 OEE / 工序加工情况查询
   if (configStartDate || configEndDate) {

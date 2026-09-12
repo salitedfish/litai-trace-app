@@ -16,9 +16,9 @@
             {{ s.name }}
           </span>
         </div>
-        <span class="tech-badge" :class="connected ? 'live' : 'offline'">
+        <span class="tech-badge" :class="badgeLive ? 'live' : 'offline'">
           <span class="tech-dot"></span>
-          {{ connected ? '实时' : '断开' }}
+          {{ badgeLive ? '实时' : '断开' }}
         </span>
       </div>
     </div>
@@ -64,8 +64,15 @@ export interface LineUnit {
   devices: { device_code: string, device_name: string, device_type: string, status?: string }[]
 }
 
+/** 看板2 模拟数据结构（客户演示用）：产线名 + 生产单元及设备，每个设备带 status 中文状态名 */
+export interface DeviceStatusMock {
+  workshop_name?: string
+  units?: LineUnit[]
+}
+
 const props = defineProps<{
   lineCode: string
+  mockData?: DeviceStatusMock | null
 }>()
 
 // ========== WebSocket 设备实时状态（组件自管理） ==========
@@ -81,6 +88,45 @@ const title = ref('')
 const units = ref<LineUnit[]>([])
 const loading = ref(false)
 const error = ref('')
+
+const isMock = computed(() => !!props.mockData)
+
+// 模拟模式下不连 WebSocket，但徽标须与正式看板一致显示"实时"——不能露出一块"断开"
+const badgeLive = computed(() => isMock.value || connected.value)
+
+// 模拟模式下的设备状态（device_code → 中文状态名），与真实链路的状态 map 分开存放，互不干扰
+const mockStatus = ref<Record<string, string>>({})
+
+/** 把配置的模拟数据摊平成渲染用的 units + 状态表；缺省字段补默认值，保证渲染路径不落空 */
+const applyMock = () => {
+  const mock = props.mockData || {}
+  const mockUnits: LineUnit[] = []
+  const statusMap: Record<string, string> = {}
+  const unitList = Array.isArray(mock.units) ? mock.units : []
+  unitList.forEach((unit: any, ui: number) => {
+    const deviceList = Array.isArray(unit?.devices) ? unit.devices : []
+    const devices = deviceList.map((dev: any, di: number) => {
+      // device_code 仅作渲染 key，配置里没填就补一个稳定的自动值
+      const deviceCode = String(dev?.device_code || 'mock_' + ui + '_' + di)
+      // 状态非四种之一时退回"关机"，避免渲染出没有配色的状态
+      const status = String(dev?.status || '')
+      statusMap[deviceCode] = STATUS_NAMES.indexOf(status) >= 0 ? status : '关机'
+      return {
+        device_code: deviceCode,
+        device_name: String(dev?.device_name || ''),
+        device_type: String(dev?.device_type || '非检测'),
+      }
+    })
+    mockUnits.push({
+      produce_unit_code: String(unit?.produce_unit_code || 'mock_unit_' + ui),
+      produce_unit_name: String(unit?.produce_unit_name || ''),
+      devices: devices,
+    })
+  })
+  title.value = String(mock.workshop_name || '全部产线')
+  units.value = mockUnits
+  mockStatus.value = statusMap
+}
 
 const loadLineDevices = async () => {
   loading.value = true
@@ -98,11 +144,17 @@ const loadLineDevices = async () => {
 }
 
 watch(() => props.lineCode, () => {
+  // 模拟模式下不查真实产线设备
+  if (isMock.value) return
   loadLineDevices()
 })
 
-/** 供父组件在配置就绪后启动（连接设备状态 WS + 加载产线设备）；产线空则加载全部产线 */
+/** 供父组件在配置就绪后启动：模拟模式直接落配置值，否则连 WS + 查产线设备（产线空则全部产线） */
 function start() {
+  if (isMock.value) {
+    applyMock()
+    return
+  }
   connectDeviceStatus()
   loadLineDevices()
 }
@@ -139,8 +191,11 @@ const allDevices = computed(() => {
   const result: { device_code: string, device_name: string, device_type: string, status: string, unit_name: string }[] = []
   for (const u of units.value) {
     for (const dev of u.devices) {
-      const statusCode = deviceStatus.value[dev.device_code] || 0
-      result.push({ ...dev, status: STATUS_NAMES[statusCode] || '关机', unit_name: u.produce_unit_name })
+      // 模拟模式取配置的状态；真实链路取 WebSocket 推送的状态码（无记录默认关机）
+      const status = isMock.value
+        ? (mockStatus.value[dev.device_code] || '关机')
+        : (STATUS_NAMES[deviceStatus.value[dev.device_code] || 0] || '关机')
+      result.push({ ...dev, status: status, unit_name: u.produce_unit_name })
     }
   }
   return result

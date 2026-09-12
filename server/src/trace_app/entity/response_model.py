@@ -193,10 +193,11 @@ class DashboardConfigRequest(TypedDict):
     end_date: str  # 结束日期（YYYY-MM-DD，可选，空为当天）
     workshop_code: str  # 产线编码（可选，空为默认第一条产线）
     product_type: List[str]  # 产品型号列表（可选，可多选，空为不限）
+    mock: Dict[str, Any]  # 模拟数据配置（可选，客户演示用；{模块: {enabled, data}}，模块白名单见 handler 的 MOCK_MODULES）
 
 
 class DashboardConfigResponse(BaseResponse):
-    data: Dict[str, Any]  # 看板配置（title 等）
+    data: Dict[str, Any]  # 看板配置（title 等，含模拟数据配置 mock）
 
 
 class HistoryOutputRequest(TypedDict):
