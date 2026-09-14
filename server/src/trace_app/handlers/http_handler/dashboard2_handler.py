@@ -16,6 +16,7 @@ from trace_app.entity.response_model import (
 )
 from trace_app.utils.swagger_utils import swagger_doc
 from trace_app.utils.db import get_collection_handler
+from trace_app.utils.device_utils import normalize_device_codes
 from trace_app.service.dashboard2_unqualified_pie_service import get_unqualified_pie, get_unqualified_reason_pie
 
 
@@ -78,6 +79,9 @@ class Dashboard2Handler(BaseHandler):
                 product_type_raw = []
             product_type = [str(x).strip() for x in product_type_raw if str(x).strip()]
 
+            # 未使用的设备（设备编码列表）：不显示状态、不计入 OEE；空列表表示清除
+            unused_devices = normalize_device_codes(data.get('unused_devices'))
+
             # 模拟数据配置（客户演示用）：{模块: {enabled: 是否启用, data: 模拟数据}}
             # 仅做结构收敛（模块白名单 + enabled 转 bool + 丢弃空模块）；
             # data 的具体形状由设置页保存前校验、由看板卡片消费，此处不解析
@@ -108,6 +112,7 @@ class Dashboard2Handler(BaseHandler):
                 ('end_date', end_date),
                 ('workshop_code', workshop_code),
                 ('product_type', product_type),
+                ('unused_devices', unused_devices),
                 ('mock', mock),
             ]:
                 if value:
@@ -126,7 +131,7 @@ class Dashboard2Handler(BaseHandler):
                     'created_at': now,
                     'updated_at': now,
                 }
-                for field in ('start_date', 'end_date', 'workshop_code', 'product_type', 'mock'):
+                for field in ('start_date', 'end_date', 'workshop_code', 'product_type', 'unused_devices', 'mock'):
                     if set_fields.get(field):
                         insert_data[field] = set_fields[field]
                 await coll.insert_one(insert_data)

@@ -30,7 +30,8 @@
       <!-- 第一行：OEE / 产线设备（mock-data 传 null 即走真实数据） -->
       <section v-show="configReady" class="charts-row2">
         <OeeCard ref="oeeCardRef" :mock-data="mockDataOf('oee')" />
-        <DeviceStatusCard ref="deviceStatusCardRef" :line-code="selectedLine" :mock-data="mockDataOf('device_status')" />
+        <DeviceStatusCard ref="deviceStatusCardRef" :line-code="selectedLine"
+          :mock-data="mockDataOf('device_status')" :unused-devices="unusedDevices" />
       </section>
 
       <!-- 第二行：工序加工情况 / 不合格原因占比（旧检验项不合格占比卡 UnqualifiedPieCard.vue 保留备用） -->
@@ -68,6 +69,8 @@ const startDate = ref(today)
 const endDate = ref(today)
 const selectedLine = ref('')
 const productTypes = ref<string[]>([])
+// 未使用的设备（看板配置）：不显示状态、不计入 OEE。空数组即不排除
+const unusedDevices = ref<string[]>([])
 // 选中产线的展示名（供饼图卡头部标签，配置产线为空时保持空=全部产线）
 const workshopName = ref('')
 // 配置是否已获取完（在此之前显示加载中，卡片不启动）
@@ -95,6 +98,7 @@ onMounted(async () => {
   let configEndDate = ''
   let configWorkshopCode = ''
   let configProductType: string[] = []
+  let configUnusedDevices: string[] = []
   try {
     const res = await api.getDashboardConfig2()
     const cfg = res.data || {}
@@ -103,6 +107,7 @@ onMounted(async () => {
     configEndDate = cfg.end_date || ''
     configWorkshopCode = cfg.workshop_code || ''
     configProductType = Array.isArray(cfg.product_type) ? cfg.product_type.slice() : []
+    configUnusedDevices = Array.isArray(cfg.unused_devices) ? cfg.unused_devices.slice() : []
     // 模拟数据配置（未配置时保持空对象 = 四块全走真实数据）
     mockConfig.value = cfg.mock && typeof cfg.mock == 'object' && !Array.isArray(cfg.mock) ? cfg.mock : {}
   } catch (_) {
@@ -114,6 +119,9 @@ onMounted(async () => {
   if (configEndDate) endDate.value = configEndDate
   if (configWorkshopCode) selectedLine.value = configWorkshopCode
   productTypes.value = configProductType
+  // 未使用的设备同样经 prop 下发，必须赶在下面 nextTick 之前落值，
+  // 否则设备卡片拿到的是空名单，会把配置要隐藏的设备一并渲染出来
+  unusedDevices.value = configUnusedDevices
 
   // 模拟数据是经 prop 下发给卡片的，props 要等一次渲染 flush 才更新；
   // 而下面 setDate/start/load 都是同步调用，不等这一下卡片拿到的还是旧 props，
@@ -125,6 +133,10 @@ onMounted(async () => {
     oeeCardRef.value?.setDate(startDate.value, endDate.value)
     processProductionCardRef.value?.setDate(startDate.value, endDate.value)
   }
+
+  // 未使用的设备先下发给 OEE：后端 provider 随连接重建，名单要赶在 start() 连上之前备好，
+  // 否则首屏那次统计会把名单里的设备算进去，等下次重连才对——那一屏数字就是错的
+  oeeCardRef.value?.setUnusedDevices(configUnusedDevices)
 
   // 配置就绪后统一启动各卡片（WS connect + 设备查询），日期/产线已先下发
   oeeCardRef.value?.start()

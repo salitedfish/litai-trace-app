@@ -11,6 +11,7 @@ import datetime
 from mg_app_framework import get_logger
 
 from trace_app.utils.collection_utils import get_datas_coll, get_device_coll, get_records_coll
+from trace_app.utils.device_utils import normalize_device_codes
 
 # KPI 编码常量
 KPI_DAILY_OUTPUT = "zb_r_cl"  # 日累计产量
@@ -58,7 +59,7 @@ async def _get_workshop_device_codes():
         return []
 
 
-async def _calc_quality_rate(time_start, time_end):
+async def _calc_quality_rate(time_start, time_end, exclude_devices=None):
     """从报工记录计算合格率
 
     逻辑：统计当天所有产出 qr_code，有过非空 check_result（不合格）就算不良品。
@@ -70,6 +71,12 @@ async def _calc_quality_rate(time_start, time_end):
         end_str = time_end.strftime("%Y-%m-%d %H:%M:%S")
 
         match = {"op_type": "out", "op_time": {"$gte": start_str, "$lt": end_str}}
+
+        # 未使用的设备整体排除出合格率统计（报工记录带 device_code 字段）。
+        # 用 $nin 而不是 $ne：device_code 缺失或为空的历史记录不属于任何被排除设备，
+        # 保持原样计入分子分母，别顺手把它们一起剔掉——那会改变既有的合格率口径。
+        if exclude_devices:
+            match["device_code"] = {"$nin": list(exclude_devices)}
 
         # 总记录数
         total = await coll.count_documents(match)
@@ -86,10 +93,13 @@ async def _calc_quality_rate(time_start, time_end):
         return None
 
 
-async def calculate_oee(start_time=None, end_time=None):
+async def calculate_oee(start_time=None, end_time=None, exclude_devices=None):
     """计算产线 OEE 及三个子指标
 
     OEE = 时间开动率 × 性能开动率 × 合格率
+
+    exclude_devices：看板配置里的「未使用的设备」编码列表，这些设备整体不参与统计
+    （含合格率）。空/未传时行为与改动前完全一致。
     """
     now = datetime.datetime.now()
     if start_time is None:
@@ -101,6 +111,12 @@ async def calculate_oee(start_time=None, end_time=None):
 
     # 参与统计的设备列表（当前为全部 type=device 的数采设备，未按产线过滤）
     devices = await _get_workshop_device_codes()
+
+    # 排除未使用的设备：从设备名单里剔掉即可，下面 5 个 KPI 全部按这个名单聚合，
+    # 一处过滤全部生效；合格率另走报工记录，单独传下去
+    excluded = normalize_device_codes(exclude_devices)
+    if excluded:
+        devices = [code for code in devices if code not in excluded]
 
     # ---- 以下 KPI 均从 datas 表聚合（按「设备码~KPI码」求和，单位：数量/小时） ----
     # 总产量：全部设备「日累计产量」zb_r_cl 之和，单位：件
@@ -116,7 +132,7 @@ async def calculate_oee(start_time=None, end_time=None):
 
     # 合格率：从报工记录表 work_order_retrospect_records 统计
     #   = 合格产出记录数 / 全部产出记录数（op_type=out，check_result 为空视为合格）
-    hgl = await _calc_quality_rate(start_time, end_time)
+    hgl = await _calc_quality_rate(start_time, end_time, excluded)
 
     # 合格率展示值：转成百分数（乘 100 保留 2 位），无数据时为 '-'
     hgl_display = round(hgl * 100, 2) if isinstance(hgl, float) else '-'

@@ -63,6 +63,14 @@
           <p class="text-xs text-muted-foreground">看板展示的产品型号，可多选，不选则不限</p>
         </div>
 
+        <!-- 未使用的设备（整行：编码通常较长且可能多个） -->
+        <div class="flex flex-col gap-2 col-span-2">
+          <label class="text-sm font-medium text-foreground">未使用的设备</label>
+          <input v-model="unusedDevicesText" type="text" placeholder="如：dev_csbqxj_001,dev_qx_001"
+            class="w-full px-4 py-2.5 rounded-lg border border-border bg-white text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all" />
+          <p class="text-xs text-muted-foreground">填设备编码，多个用逗号分隔。这些设备不显示状态、也不计入 OEE（含合格率）；留空则全部设备都展示</p>
+        </div>
+
       </div>
 
       <!-- ==================== 模拟数据配置 ====================
@@ -185,12 +193,16 @@ import api from '../../api/trace-app'
 import CustomSelect from '../../components/CustomSelect.vue'
 import MultiSelect from '../../components/MultiSelect.vue'
 import { showToast } from '../../utils/dialog'
+import { parseCodeList, formatCodeList } from '../../utils/codeList'
 
 const title = ref('')
 const startDate = ref('')
 const endDate = ref('')
 const workshopCode = ref('')
 const productType = ref<string[]>([])
+// 未使用的设备：输入框里保持用户原样的逗号分隔文本，保存时才解析成数组——
+// 边打边解析会把用户正在敲的半个编码吃掉，回填时也没法保留他习惯的写法
+const unusedDevicesText = ref('')
 const lineList = ref<{ workshop_code: string, workshop_name: string }[]>([])
 const lineLoading = ref(false)
 const productTypeList = ref<{ production_type: string, routing_code: string }[]>([])
@@ -451,6 +463,7 @@ onMounted(async () => {
     endDate.value = cfg.end_date || ''
     workshopCode.value = cfg.workshop_code || ''
     productType.value = Array.isArray(cfg.product_type) ? cfg.product_type : []
+    unusedDevicesText.value = formatCodeList(cfg.unused_devices)
     // 模拟数据配置：未配置的模块保持"未启用 + 空文本域"
     const mockCfg = isPlainObject(cfg.mock) ? cfg.mock : {}
     for (const m of mockModules) {
@@ -483,6 +496,7 @@ const handleSave = async () => {
       end_date: endDate.value,
       workshop_code: workshopCode.value,
       product_type: productType.value,
+      unused_devices: parseCodeList(unusedDevicesText.value),
       mock: mock,
     })
     saved.value = true

@@ -30,7 +30,8 @@
       <!-- 图表行 1：OEE / 产线设备 / 计划/实际产量 -->
       <section v-show="configReady" class="charts-row">
         <OeeCard ref="oeeCardRef" />
-        <DeviceStatusCard ref="deviceStatusCardRef" class="col-span-2" :line-code="selectedLine" />
+        <DeviceStatusCard ref="deviceStatusCardRef" class="col-span-2" :line-code="selectedLine"
+          :unused-devices="unusedDevices" />
         <PlanActualOutputCard ref="planActualOutputCardRef" />
       </section>
 
@@ -79,6 +80,8 @@ const today = formatDateLocal(new Date())
 const startDate = ref(today)
 const endDate = ref(today)
 const selectedLine = ref('')
+// 未使用的设备（看板配置）：不显示状态、不计入 OEE。空数组即不排除
+const unusedDevices = ref<string[]>([])
 // 配置是否已获取完（在此之前显示加载中，卡片不启动）
 const configReady = ref(false)
 
@@ -96,6 +99,7 @@ onMounted(async () => {
   let configEndDate = ''
   let configWorkshopCode = ''
   let configProductType: string[] = []
+  let configUnusedDevices: string[] = []
   try {
     const res = await api.getDashboardConfig()
     const cfg = res.data || {}
@@ -104,6 +108,7 @@ onMounted(async () => {
     configEndDate = cfg.end_date || ''
     configWorkshopCode = cfg.workshop_code || ''
     configProductType = Array.isArray(cfg.product_type) ? cfg.product_type : []
+    configUnusedDevices = Array.isArray(cfg.unused_devices) ? cfg.unused_devices : []
   } catch (_) {
     // 使用默认配置
   }
@@ -112,6 +117,9 @@ onMounted(async () => {
   if (configStartDate) startDate.value = configStartDate
   if (configEndDate) endDate.value = configEndDate
   if (configWorkshopCode) selectedLine.value = configWorkshopCode
+  // 未使用的设备无"有值才下发"的判断——空列表就是不排除，与不配置等价，
+  // 直接落值即可，设备卡片靠 props 变动自动刷新
+  unusedDevices.value = configUnusedDevices
 
   // 配置了查询日期时，同步给 OEE / 工序合格率 / 小时产量 / 计划实际产量查询
   if (configStartDate || configEndDate) {
@@ -129,6 +137,10 @@ onMounted(async () => {
 
   // 历史数据：进看板时查一次（前两周，按配置的产品型号过滤）
   historyDataCardRef.value?.load(configProductType)
+
+  // 未使用的设备先下发给 OEE：后端 provider 随连接重建，名单要赶在 start() 连上之前备好，
+  // 否则首屏那次统计会把名单里的设备算进去，等下次重连才对——那一屏数字就是错的
+  oeeCardRef.value?.setUnusedDevices(configUnusedDevices)
 
   // 配置就绪后统一启动各卡片（WS connect + 设备查询），日期/产品型号已先下发
   oeeCardRef.value?.start()

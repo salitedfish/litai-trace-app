@@ -88,7 +88,14 @@ import { useDashboardWebSocket, type OeeData } from '../../../composables/useDas
 const props = defineProps<{ mockData?: OeeData | null }>()
 
 // ========== WebSocket OEE 数据（组件自管理，父组件配置就绪后 start 启动） ==========
-const { oeeData, connected, connect, disconnect, setQueryDate } = useDashboardWebSocket()
+const {
+  oeeData,
+  connected,
+  connect,
+  disconnect,
+  setQueryDate,
+  setUnusedDevices: setWsUnusedDevices,
+} = useDashboardWebSocket()
 
 const isMock = computed(() => !!props.mockData)
 
@@ -104,6 +111,12 @@ function setDate(dateStart: string, dateEnd: string) {
   setQueryDate(dateStart, dateEnd)
 }
 
+/** 供父组件设置未使用的设备（看板配置）：这些设备不计入 OEE（含合格率）。
+ *  与日期一样要在 start() 之前调用——后端 provider 随连接重建，名单得赶在连上前备好 */
+function setUnusedDevices(devices: string[]) {
+  setWsUnusedDevices(devices)
+}
+
 /** 供父组件在配置就绪后启动：模拟模式直接落配置值，否则连 WebSocket 取真实数据 */
 function start() {
   if (props.mockData) {
@@ -113,7 +126,7 @@ function start() {
   connect()
 }
 
-defineExpose({ setDate, start })
+defineExpose({ setDate, setUnusedDevices, start })
 
 // OEE 子指标
 const subMetrics = computed(() => {

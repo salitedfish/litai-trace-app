@@ -70,9 +70,12 @@ export interface DeviceStatusMock {
   units?: LineUnit[]
 }
 
+// unusedDevices：看板配置里的「未使用的设备」编码列表，这些设备不显示状态。
+// 与 mockData 一样是可选项——看板1 与看板2 共用本组件，不传时行为与改动前完全一致。
 const props = defineProps<{
   lineCode: string
   mockData?: DeviceStatusMock | null
+  unusedDevices?: string[] | null
 }>()
 
 // ========== WebSocket 设备实时状态（组件自管理） ==========
@@ -96,6 +99,33 @@ const badgeLive = computed(() => isMock.value || connected.value)
 
 // 模拟模式下的设备状态（device_code → 中文状态名），与真实链路的状态 map 分开存放，互不干扰
 const mockStatus = ref<Record<string, string>>({})
+
+// 「未使用的设备」名单（按设备编码）。这些设备不显示状态。
+// 必须在设备清单上过滤：状态来自 WS 推的全量 map，设备只要还留在清单里，
+// allDevices 就会按"查不到状态=关机"兜底，反倒渲染成一排灰色磁贴——
+// 那正是需求要避免的"显示这些设备的状态"。光过滤状态 map 是没用的。
+const unusedDeviceSet = computed(() => {
+  const set: Record<string, boolean> = {}
+  const list = Array.isArray(props.unusedDevices) ? props.unusedDevices : []
+  for (const item of list) {
+    const code = String(item).trim()
+    if (code) set[code] = true
+  }
+  return set
+})
+
+/** 过滤掉未使用的设备；某生产单元的设备被全部滤掉时，连同该单元一起去掉。
+ *  只滤设备不滤单元的话，面板会显示一片空网格加图例，而不是「暂无设备数据」 */
+function filterUnusedUnits(source: LineUnit[]): LineUnit[] {
+  const unused = unusedDeviceSet.value
+  if (!Object.keys(unused).length) return source
+  const result: LineUnit[] = []
+  for (const unit of source) {
+    const devices = unit.devices.filter(dev => !unused[String(dev.device_code).trim()])
+    if (devices.length) result.push({ ...unit, devices: devices })
+  }
+  return result
+}
 
 /** 把配置的模拟数据摊平成渲染用的 units + 状态表；缺省字段补默认值，保证渲染路径不落空 */
 const applyMock = () => {
@@ -124,6 +154,9 @@ const applyMock = () => {
     })
   })
   title.value = String(mock.workshop_name || '全部产线')
+  // 模拟数据整份照搬，不套用「未使用的设备」过滤：启用模拟就是完全按模拟数据展示、
+  // 其余条件一概不参与（2026-09-14 需求方明确）。模拟数据本来就是给客户演示用的，
+  // 演示时看到的设备应当与配置里写的一模一样，不该被另一处配置悄悄删掉几台。
   units.value = mockUnits
   mockStatus.value = statusMap
 }
@@ -134,7 +167,7 @@ const loadLineDevices = async () => {
   try {
     const res = await api.queryLineDevices(props.lineCode)
     title.value = res.data?.workshop_name || '全部产线'
-    units.value = res.data?.units || []
+    units.value = filterUnusedUnits(res.data?.units || [])
   } catch (err: any) {
     console.error('加载产线设备失败:', err)
     error.value = '设备数据加载失败'

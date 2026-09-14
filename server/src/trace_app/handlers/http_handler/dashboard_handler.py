@@ -9,6 +9,7 @@ from trace_app.entity.response_entity import Response
 from trace_app.entity.response_model import DashboardConfigRequest, DashboardConfigResponse, HistoryOutputRequest, HistoryOutputResponse
 from trace_app.utils.swagger_utils import swagger_doc
 from trace_app.utils.db import get_collection_handler
+from trace_app.utils.device_utils import normalize_device_codes
 from trace_app.service.history_output_service import get_history_output
 
 
@@ -68,6 +69,9 @@ class DashboardHandler(BaseHandler):
                 product_type_raw = []
             product_type = [str(x).strip() for x in product_type_raw if str(x).strip()]
 
+            # 未使用的设备（设备编码列表）：不显示状态、不计入 OEE；空列表表示清除
+            unused_devices = normalize_device_codes(data.get('unused_devices'))
+
             coll = await get_collection_handler(COLLECTION_NAME)
             doc = await coll.find_one({}, {'_id': 1})
             now = datetime.now().isoformat()
@@ -80,6 +84,7 @@ class DashboardHandler(BaseHandler):
                 ('end_date', end_date),
                 ('workshop_code', workshop_code),
                 ('product_type', product_type),
+                ('unused_devices', unused_devices),
             ]:
                 if value:
                     set_fields[field] = value
@@ -97,7 +102,7 @@ class DashboardHandler(BaseHandler):
                     'created_at': now,
                     'updated_at': now,
                 }
-                for field in ('start_date', 'end_date', 'workshop_code', 'product_type'):
+                for field in ('start_date', 'end_date', 'workshop_code', 'product_type', 'unused_devices'):
                     if set_fields.get(field):
                         insert_data[field] = set_fields[field]
                 await coll.insert_one(insert_data)

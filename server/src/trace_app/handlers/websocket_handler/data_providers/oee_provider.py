@@ -9,12 +9,13 @@ from tornado.ioloop import IOLoop
 
 from trace_app.handlers.websocket_handler.data_providers.base_provider import DataProvider
 from trace_app.service.oee_service import calculate_oee
+from trace_app.utils.device_utils import normalize_device_codes
 
 
 class OeeProvider(DataProvider):
     """OEE 数据推送提供器
     每 10 秒推送一次 OEE/时间开动率/性能开动率/合格率
-    支持 set_date / refresh 客户端 action
+    支持 set_date / set_unused_devices / refresh 客户端 action
     """
 
     name = "oee"
@@ -24,6 +25,10 @@ class OeeProvider(DataProvider):
         super().__init__()
         self._query_start = None
         self._query_end = None
+        # 未使用的设备（看板配置下发）：仅在本连接的统计里排除。
+        # 两个看板共用一个 /ws/oee 端点，服务端分不清调用方是谁，
+        # 所以名单只能由前端随连接一起推上来，不能在后端查配置。
+        self._exclude_devices = []
 
     def setup(self):
         """连接建立时立即推送一次"""
@@ -52,6 +57,12 @@ class OeeProvider(DataProvider):
             IOLoop.current().spawn_callback(self.push)
             return True
 
+        if action == "set_unused_devices":
+            # 看板配置里的「未使用的设备」：这些设备不参与 OEE 统计（含合格率）
+            self._exclude_devices = normalize_device_codes(message.get("unused_devices"))
+            IOLoop.current().spawn_callback(self.push)
+            return True
+
         return False
 
     async def push(self):
@@ -65,7 +76,11 @@ class OeeProvider(DataProvider):
             if self._query_end:
                 query_end = self._query_end.replace(hour=23, minute=59, second=59, microsecond=0)
 
-            oee_data = await calculate_oee(start_time=query_start, end_time=query_end)
+            oee_data = await calculate_oee(
+                start_time=query_start,
+                end_time=query_end,
+                exclude_devices=self._exclude_devices,
+            )
 
             query_label = "today"
             if self._query_start or self._query_end:
