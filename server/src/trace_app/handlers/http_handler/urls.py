@@ -7,6 +7,7 @@ from trace_app.handlers.http_handler.dashboard_handler import DashboardHandler
 from trace_app.handlers.http_handler.dashboard2_handler import Dashboard2Handler
 from trace_app.handlers.http_handler.base_config_handler import BaseConfigHandler
 from trace_app.handlers.http_handler.material_scan_handler import MaterialScanHandler
+from trace_app.handlers.http_handler.report_query_handler import ReportQueryHandler
 from trace_app.utils.swagger_utils import generate_handler_classes
 
 url = []
@@ -18,6 +19,7 @@ r.register(DashboardHandler)
 r.register(Dashboard2Handler)
 r.register(BaseConfigHandler)
 r.register(MaterialScanHandler)
+r.register(ReportQueryHandler)
 
 # SampleHandler（示例/工具接口，无数据查询）
 #   /api/trace_app/health（GET）  健康检查
@@ -58,6 +60,7 @@ for path, handler_cls, methods in generate_handler_classes(Dashboard2Handler):
 #   /api/trace_app/base_config/routing_processes（POST） 工艺路线→工序信息表 process_info 取生产单元→布局表 web_layout_application 取设备
 #   /api/trace_app/base_config/line_list（POST）       查布局表 web_layout_application 按车间代号（产线）去重的产线列表
 #   /api/trace_app/base_config/line_devices（POST）    按车间代号查布局表 web_layout_application，按生产单元分组返回设备
+#   /api/trace_app/base_config/process_list（POST）    查 process_info 按工序编码去重的全部工序（未选工艺路线时填工序下拉）
 for path, handler_cls, methods in generate_handler_classes(BaseConfigHandler):
     r.register(handler_cls)
 
@@ -65,6 +68,15 @@ for path, handler_cls, methods in generate_handler_classes(BaseConfigHandler):
 # 由 manual_line_general_traceability 落库，只读）
 #   /api/trace_app/material_scan/query（POST） 按码值（模糊）+ 时间范围分页查询扫码登料记录
 for path, handler_cls, methods in generate_handler_classes(MaterialScanHandler):
+    r.register(handler_cls)
+
+# ReportQueryHandler（报工查询，查 {org}_order_retrospect.work_order_retrospect_records 的产出记录；
+# 不合格原因统计查 {org}_manual_trace.inspection_records，由 manual_line 落库，只读）
+#   /api/trace_app/report/query（POST）                   按产品/工艺路线/工序/人员/结果/设备+时间范围分页查报工记录
+#   /api/trace_app/report/filter_options（POST）          取报工记录里出现过的操作人/设备作为下拉候选
+#   /api/trace_app/report/unqualified_reason_query（POST） 按产品/工艺路线/工序统计检验单不合格原因次数（分页）
+#   /api/trace_app/report/unqualified_reason_records（POST） 按不合格原因反查勾选该原因的检验单 → 报工记录（分页）
+for path, handler_cls, methods in generate_handler_classes(ReportQueryHandler):
     r.register(handler_cls)
 
 url.extend(r.host_handlers)

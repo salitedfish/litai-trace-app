@@ -78,6 +78,28 @@ def _parse_iso_format_manually(date_string: str) -> Optional[datetime]:
         return None
 
 
+def normalize_time_bound(value, is_end):
+    """把前端传入的时间规整成可与 op_time 字符串直接比较的格式
+
+    支持 'YYYY-MM-DD'（补 00:00:00 / 23:59:59）、
+    'YYYY-MM-DD HH:mm'（补 :00 / :59）、'YYYY-MM-DD HH:mm:ss'（原样）三种写法。
+    返回空串表示未传或格式不合法（调用方据此忽略该边界）。
+
+    ⚠️ 时间口径：MES 各库的 op_time 存的是服务器本地墙上时间（北京时间）字符串，
+    这里只做缺失部分补全，不做任何时区换算，比较时也是字符串直接比。
+    """
+    if not value:
+        return ""
+    text = str(value).strip().replace("T", " ")
+    if len(text) == 10:
+        return f"{text} 23:59:59" if is_end else f"{text} 00:00:00"
+    if len(text) == 16:
+        return f"{text}:59" if is_end else f"{text}:00"
+    if len(text) >= 19:
+        return text[:19]
+    return ""
+
+
 def format_datetime_to_iso(dt: datetime) -> str:
     if not dt:
         return ""

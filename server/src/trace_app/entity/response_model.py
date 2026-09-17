@@ -300,6 +300,7 @@ class DeviceDataQueryRequest(TypedDict):
 class DeviceDataItem(TypedDict):
     """设备数采数据记录"""
     code: str  # 信号编码（设备编码~信号类型）
+    name: str  # 信号名称（来自设备点位配置 children[].name，查不到时回落为点位编码）
     value: str  # 信号值
     timestamp: str  # 采集时间
 
@@ -321,6 +322,16 @@ class RoutingItem(TypedDict):
 
 class RoutingListResponse(BaseResponse):
     data: List[RoutingItem]  # 工艺路线列表
+
+
+class ProcessItem(TypedDict):
+    """工序"""
+    process_code: str  # 工序编码
+    process_name: str  # 工序名称
+
+
+class ProcessListResponse(BaseResponse):
+    data: List[ProcessItem]  # 全部工序列表
 
 
 class RoutingProcessRequest(TypedDict):
@@ -434,3 +445,93 @@ class MaterialScanRecordItem(TypedDict):
 
 class MaterialScanQueryResponse(BaseResponse):
     data: PageItem  # 分页数据（包含 total, page, page_size, list）
+
+
+# ==================== 报工查询 ====================
+
+class ReportQueryRequest(TypedDict):
+    """报工查询请求参数"""
+    product_type: str  # 产品型号（可选，对应记录 production_type）
+    routing_code: str  # 工艺路线编码（可选，经该路线工序集合反筛）
+    process_code: str  # 工序编码（可选）
+    operator: str  # 操作人工号（可选）
+    check_result: str  # 检测结果（可选，一次合格/返工合格/复投合格/不合格）
+    device_code: str  # 设备编码（可选）
+    start_time: str  # 操作时间起（YYYY-MM-DD HH:mm:ss，可选）
+    end_time: str  # 操作时间止（YYYY-MM-DD HH:mm:ss，可选）
+    page: int  # 页码（从 1 开始）
+    page_size: int  # 每页条数
+
+
+class ReportRecordItem(TypedDict):
+    """报工记录（一次报工一行，取产出记录）"""
+    id: str  # 记录ID
+    workorder_code: str  # 工单编码
+    product_type: str  # 产品型号
+    procedure_code: str  # 工序编码
+    procedure_name: str  # 工序名称
+    material_code: str  # 物料编码
+    material_type: str  # 物料类型（raw_material/semi_finished_product/finished_product）
+    qr_code: str  # 产出条码
+    op_time: str  # 操作时间
+    device_code: str  # 设备编码
+    device_name: str  # 设备名称
+    check_result: str  # 检测结果（一次合格/返工合格/复投合格/不合格）
+    operator: str  # 操作人（查到昵称时为昵称，否则为工号）
+
+
+class ReportQueryResponse(BaseResponse):
+    data: PageItem  # 分页数据（包含 total, page, page_size, list）
+
+
+class ReportFilterOptionItem(TypedDict):
+    """报工查询下拉候选项"""
+    value: str  # 提交给后端的值（工号/设备编码）
+    label: str  # 显示文本（昵称 / 工号、设备名称 / 编码）
+
+
+class ReportFilterOptionsData(TypedDict):
+    """报工查询页下拉候选"""
+    operators: List[ReportFilterOptionItem]  # 人员候选（记录里出现过的操作人）
+    devices: List[ReportFilterOptionItem]  # 设备候选（记录里出现过的设备）
+
+
+class ReportFilterOptionsResponse(BaseResponse):
+    data: ReportFilterOptionsData  # 人员/设备候选
+
+
+# ==================== 报工不合格原因 ====================
+
+class UnqualifiedReasonQueryRequest(TypedDict):
+    """报工不合格原因查询请求参数"""
+    product_type: str  # 产品型号（可选，匹配检验单 product_code）
+    routing_code: str  # 工艺路线编码（可选）
+    process_code: str  # 工序编码（可选）
+    start_time: str  # 报工时间起（可选，留空为不限）
+    end_time: str  # 报工时间止（可选，留空为不限）
+    page: int  # 页码（从 1 开始）
+    page_size: int  # 每页条数
+
+
+class UnqualifiedReasonItem(TypedDict):
+    """不合格原因统计项"""
+    reason_code: str  # 不合格原因编码
+    reason_name: str  # 不合格原因名称（缺失时回退为编码）
+    count: int  # 被勾选次数
+
+
+class UnqualifiedReasonQueryResponse(BaseResponse):
+    data: PageItem  # 分页数据（total 为原因条数，list 为 {reason_code, reason_name, count}）
+
+
+class UnqualifiedReasonReportRequest(TypedDict):
+    """不合格原因关联报工记录查询请求参数"""
+    reason_code: str  # 不合格原因编码（空则用 reason_name 匹配）
+    reason_name: str  # 不合格原因名称
+    product_type: str  # 产品型号（可选，与列表现有筛选条件保持一致）
+    routing_code: str  # 工艺路线编码（可选）
+    process_code: str  # 工序编码（可选）
+    start_time: str  # 报工时间起（可选，与列表现有筛选条件保持一致）
+    end_time: str  # 报工时间止（可选）
+    page: int  # 页码（从 1 开始）
+    page_size: int  # 每页条数

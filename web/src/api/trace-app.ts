@@ -57,10 +57,49 @@ export default {
   queryUnqualifiedReasonPie: (params: { start_date?: string, end_date?: string, workshop_code?: string, product_types?: string[] }) =>
     _post('api/trace_app/dashboard_2/unqualified_reason_pie', params),
 
+  // 报工查询（数据源：{org}_order_retrospect.work_order_retrospect_records 的产出记录）
+  queryReportRecords: (params: {
+    product_type?: string,
+    routing_code?: string,
+    process_code?: string,
+    operator?: string,
+    check_result?: string,
+    device_code?: string,
+    start_time?: string,
+    end_time?: string,
+    page: number,
+    page_size: number,
+  }) => _post('api/trace_app/report/query', params),
+  // 人员/设备下拉候选（取自报工记录里出现过的值，无请求参数）
+  queryReportFilterOptions: () => _post('api/trace_app/report/filter_options'),
+  // 报工不合格原因次数统计（数据源：{org}_manual_trace.inspection_records，按需求不带日期条件）
+  queryUnqualifiedReasons: (params: {
+    product_type?: string,
+    routing_code?: string,
+    process_code?: string,
+    start_time?: string,
+    end_time?: string,
+    page: number,
+    page_size: number,
+  }) => _post('api/trace_app/report/unqualified_reason_query', params),
+  // 不合格原因关联的报工记录（按原因反查勾选该原因的检验单 → 产出报工记录，行结构同报工查询）
+  queryUnqualifiedReasonRecords: (params: {
+    reason_code?: string,
+    reason_name?: string,
+    product_type?: string,
+    routing_code?: string,
+    process_code?: string,
+    start_time?: string,
+    end_time?: string,
+    page: number,
+    page_size: number,
+  }) => _post('api/trace_app/report/unqualified_reason_records', params),
+
   // 生产基础配置
   queryRoutingList: () => _post('api/trace_app/base_config/routing_list'),
   queryRoutingProcesses: (routingCode: string) =>
     _post('api/trace_app/base_config/routing_processes', { routing_code: routingCode }),
+  queryProcessList: () => _post('api/trace_app/base_config/process_list'),
   queryLineList: () => _post('api/trace_app/base_config/line_list'),
   queryProductTypeList: () => _post('api/trace_app/base_config/product_type_list'),
   queryLineDevices: (workshopCode: string) =>

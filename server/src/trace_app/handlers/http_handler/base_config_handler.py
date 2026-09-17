@@ -9,6 +9,7 @@ from trace_app.entity.response_model import (
     LineDevicesRequest,
     LineDevicesResponse,
     LineListResponse,
+    ProcessListResponse,
     ProductTypeListResponse,
     RoutingListResponse,
     RoutingProcessRequest,
@@ -62,6 +63,44 @@ class BaseConfigHandler(BaseHandler):
                     "routing_type": r.get("工艺路线类型", ""),
                     "workshop_code": r.get("车间编码", ""),
                     "workshop_name": r.get("车间名称", ""),
+                })
+
+            self.send_response(Response.success(result, "查询成功"))
+
+        except Exception:
+            get_logger().error(traceback.format_exc())
+            self.send_response(Response.fail("查询失败，服务器内部错误"))
+
+    # =====================================================================
+    # 全部工序列表查询
+    # =====================================================================
+
+    @request_mapping('/process_list', method='post', description='获取全部工序列表')
+    @swagger_doc(
+        tags=["生产基础配置"],
+        summary="获取全部工序列表",
+        description="查询全部工序（按工序编码去重），返回编码与名称；"
+                    "报工查询页在未选工艺路线时用其填充工序下拉",
+        response_model=ProcessListResponse,
+    )
+    @loginrequired
+    async def query_process_list(self):
+        """查询全部工序列表，用于前端下拉选择"""
+        try:
+            process_coll = await get_process_coll()
+            pipeline = [
+                {"$group": {
+                    "_id": "$工序编码",
+                    "工序名称": {"$first": "$工序名称"},
+                }},
+                {"$sort": {"_id": 1}},
+            ]
+            cursor = process_coll.aggregate(pipeline)
+            result = []
+            async for r in cursor:
+                result.append({
+                    "process_code": r.get("_id", ""),
+                    "process_name": r.get("工序名称", ""),
                 })
 
             self.send_response(Response.success(result, "查询成功"))

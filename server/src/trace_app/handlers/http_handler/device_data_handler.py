@@ -16,6 +16,27 @@ from trace_app.utils.swagger_utils import swagger_doc
 from trace_app.utils.collection_utils import get_device_coll, get_datas_coll
 
 
+# 开关机状态（p_kgj_wg）所有设备通用，但不在 device.children 里，是代码补上的——
+# 数采列表按点位名回填时同样要兜底，否则这一条会查不到名字
+DEFAULT_POINT_NAME = "p_kgj_wg"
+DEFAULT_POINT_LABEL = "开关机状态"
+
+
+def build_point_name_map(device):
+    """设备文档 → {点位编码: 点位名称}
+
+    名称只存在于 idi_{org}_cloud_management.device 的 children[].name，
+    datas 表本身没有名字字段，所以按点位编码回填。
+    """
+    names = {DEFAULT_POINT_NAME: DEFAULT_POINT_LABEL}
+    for child in ((device or {}).get("children") or []):
+        code = child.get("code", "")
+        # p_kgj_wg 即使出现在 children 里也统一用上面的固定名，与点位下拉同口径
+        if code and code != DEFAULT_POINT_NAME:
+            names[code] = child.get("name", "") or code
+    return names
+
+
 @request_mapping('/api/trace_app')
 class DeviceDataHandler(BaseHandler):
     """设备数采查询处理器 — 设备列表查询、数采信号数据查询"""
@@ -84,21 +105,9 @@ class DeviceDataHandler(BaseHandler):
                 projection={"children": 1}
             )
 
-            result = []
-            # 默认首位：开关机状态（p_kgj_wg），所有设备通用
-            result.append({
-                "code": "p_kgj_wg",
-                "name": "开关机状态",
-            })
-            if device and device.get("children"):
-                for child in device["children"]:
-                    code = child.get("code", "")
-                    name = child.get("name", "")
-                    if code and code != "p_kgj_wg":
-                        result.append({
-                            "code": code,
-                            "name": name or code,
-                        })
+            # 首位固定为开关机状态（p_kgj_wg，所有设备通用），其余按设备配置顺序
+            name_map = build_point_name_map(device)
+            result = [{"code": code, "name": name} for code, name in name_map.items()]
 
             self.send_response(Response.success(result, "查询成功"))
 
@@ -170,6 +179,14 @@ class DeviceDataHandler(BaseHandler):
                     "timestamp": {"$gte": dt_start, "$lte": dt_end},
                 }
 
+            # ---- 点位名称映射（datas 表只有 code，名字要去设备点位配置里取）----
+            device_coll = await get_device_coll()
+            device = await device_coll.find_one(
+                {"code": device_code, "type": "device"},
+                projection={"children": 1}
+            )
+            name_map = build_point_name_map(device)
+
             # ---- 查询并分页 ----
             datas_coll = await get_datas_coll()
 
@@ -186,8 +203,13 @@ class DeviceDataHandler(BaseHandler):
             result_list = []
             for r in records:
                 ts = r.get("timestamp")
+                code = r.get("code", "")
+                # code 形如「设备编码~点位编码」，名称按后半段查；查不到（点位已从配置删除
+                # 等）回落显示点位编码本身，不留空
+                point_code = code.split("~", 1)[1] if "~" in code else code
                 result_list.append({
-                    "code": r.get("code", ""),
+                    "code": code,
+                    "name": name_map.get(point_code, "") or point_code,
                     "value": r.get("value", ""),
                     "timestamp": str(ts) if ts else "",
                 })

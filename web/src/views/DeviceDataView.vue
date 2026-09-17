@@ -24,6 +24,7 @@
             variant="outline"
             :disabled="!selectedDevice || pointLoading"
             searchable
+            clearable
           />
         </div>
         <div class="flex flex-col gap-1.5">
@@ -79,6 +80,7 @@
           <thead class="sticky top-0 bg-card z-10">
             <tr class="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
               <th class="px-3 py-2.5 font-semibold whitespace-nowrap w-12 text-center">#</th>
+              <th class="px-3 py-2.5 font-semibold whitespace-nowrap">信号名称</th>
               <th class="px-3 py-2.5 font-semibold whitespace-nowrap">信号编码</th>
               <th class="px-3 py-2.5 font-semibold whitespace-nowrap">信号值</th>
               <th class="px-3 py-2.5 font-semibold whitespace-nowrap">采集时间</th>
@@ -87,6 +89,7 @@
           <tbody class="divide-y divide-border/50 text-sm">
             <tr v-for="(item, idx) in dataList" :key="item.code + '-' + idx" class="hover:bg-accent/5 transition-colors">
               <td class="px-3 py-2.5 text-center text-muted-foreground">{{ (page - 1) * pageSize + idx + 1 }}</td>
+              <td class="px-3 py-2.5 max-w-[240px] break-all" :title="item.name || item.code">{{ item.name || item.code }}</td>
               <td class="px-3 py-2.5 font-mono text-xs max-w-[300px] break-all" :title="item.code">{{ item.code }}</td>
               <td class="px-3 py-2.5 font-mono text-sm font-semibold" :class="valueColorClass(item.value)">{{ item.value }}</td>
               <td class="px-3 py-2.5 text-muted-foreground text-xs">{{ fmtTime(item.timestamp) }}</td>

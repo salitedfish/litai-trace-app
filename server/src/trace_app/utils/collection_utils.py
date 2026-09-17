@@ -115,6 +115,49 @@ def calc_check_result(raw_check, prod_model):
     return raw_check
 
 
+async def collect_unqualified_reason_counts(doc_iter):
+    """累计检验单明细中的不合格原因次数
+
+    同一条不合格明细可挂多个原因，每个原因各计一次。
+
+    Args:
+        doc_iter: 检验单文档的异步迭代器（游标），每个文档取 items 字段
+
+    Returns:
+        [{reason_code, reason_name, count}]，按次数降序、原因编码升序
+    """
+    stats = {}
+    async for doc in doc_iter:
+        for item in doc.get("items") or []:
+            if item.get("is_qualified"):
+                continue
+            for reason in item.get("unqualified_reasons") or []:
+                if not isinstance(reason, dict):
+                    continue
+                reason_code = str(reason.get("reason_code") or "").strip()
+                reason_name = str(reason.get("reason_name") or "").strip()
+                key = reason_code or reason_name
+                if not key:
+                    continue
+                entry = stats.setdefault(
+                    key, {"reason_code": reason_code, "reason_name": reason_name, "count": 0})
+                entry["count"] += 1
+                if not entry["reason_name"]:
+                    entry["reason_name"] = reason_name
+
+    result = [
+        {
+            "reason_code": s["reason_code"],
+            "reason_name": s["reason_name"] or s["reason_code"],
+            "count": s["count"],
+        }
+        for s in stats.values()
+    ]
+    # 次数降序；同次数按原因编码升序，保证分页顺序稳定
+    result.sort(key=lambda x: (-x["count"], x["reason_code"]))
+    return result
+
+
 async def enrich_device_names(device_codes, steps):
     """批量查询设备名称并填充到追溯步骤中
 

@@ -17,7 +17,11 @@ import datetime
 
 from mg_app_framework import get_logger
 
-from trace_app.utils.collection_utils import get_inspection_records_coll, get_web_layout_application_coll
+from trace_app.utils.collection_utils import (
+    collect_unqualified_reason_counts,
+    get_inspection_records_coll,
+    get_web_layout_application_coll,
+)
 
 
 async def get_unqualified_pie(start_date=None, end_date=None, workshop_code=None, product_types=None):
@@ -117,42 +121,8 @@ async def get_unqualified_reason_pie(start_date=None, end_date=None, workshop_co
             query["product_code"] = {"$in": list(product_types)}
 
         coll = await get_inspection_records_coll()
-        stats = {}
-        async for doc in coll.find(query, {"_id": 0, "items": 1}):
-            for item in doc.get("items") or []:
-                if item.get("is_qualified"):
-                    continue
-                # 只统计勾选过原因的不合格项，未勾原因的不参与原因占比
-                for reason in item.get("unqualified_reasons") or []:
-                    if not isinstance(reason, dict):
-                        continue
-                    reason_code = str(reason.get("reason_code") or "").strip()
-                    reason_name = str(reason.get("reason_name") or "").strip()
-                    # 优先按编码聚合，编码缺失（历史数据）时回退名称作键；都缺则跳过
-                    key = reason_code or reason_name
-                    if not key:
-                        continue
-                    entry = stats.setdefault(
-                        key, {"reason_code": reason_code, "reason_name": reason_name, "count": 0}
-                    )
-                    entry["count"] += 1
-                    if not entry["reason_name"]:
-                        entry["reason_name"] = reason_name
-
-        if not stats:
-            return []
-
-        # reason_name 缺失时回退显示编码
-        result = [
-            {
-                "reason_code": s["reason_code"],
-                "reason_name": s["reason_name"] or s["reason_code"],
-                "count": s["count"],
-            }
-            for s in stats.values()
-        ]
-        result.sort(key=lambda x: x["count"], reverse=True)
-        return result
+        # 聚合口径见 collect_unqualified_reason_counts（报工不合格原因页共用同一份）
+        return await collect_unqualified_reason_counts(coll.find(query, {"_id": 0, "items": 1}))
     except Exception as e:
         get_logger().exception("统计不合格原因占比失败: %s", e)
         return []

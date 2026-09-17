@@ -1,28 +1,13 @@
 import re
 
 from trace_app.utils.collection_utils import get_material_scan_records_coll
+from trace_app.utils.datetime_utils import normalize_time_bound
 
 # 每页最大条数，防止一次拉取过多数据
 MAX_PAGE_SIZE = 200
 
-
-def _normalize_time(value, is_end):
-    """把前端传入的时间规整成可与 op_time 字符串直接比较的格式
-
-    支持 'YYYY-MM-DD'（补 00:00:00 / 23:59:59）、
-    'YYYY-MM-DD HH:mm'（补 :00 / :59）、'YYYY-MM-DD HH:mm:ss'（原样）三种写法。
-    返回空串表示未传或格式不合法（调用方据此忽略该边界）。
-    """
-    if not value:
-        return ""
-    text = str(value).strip().replace("T", " ")
-    if len(text) == 10:
-        return f"{text} 23:59:59" if is_end else f"{text} 00:00:00"
-    if len(text) == 16:
-        return f"{text}:59" if is_end else f"{text}:00"
-    if len(text) >= 19:
-        return text[:19]
-    return ""
+# 本模块内沿用旧名，实现已提到 utils/datetime_utils 供多个 service 共用
+_normalize_time = normalize_time_bound
 
 
 async def query_material_scan_records(code, start_time, end_time, page, page_size):
